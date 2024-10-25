@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package example;
+
+option go_package = "protoc-gen-go-nats-microservice/example";
+
+service ExampleService {
+    rpc SayHi(Request) returns(Response);
+}
+
+
+message Request{
+    string name = 1;
+}
+
+message Response{
+    string greeting = 1;
+}
