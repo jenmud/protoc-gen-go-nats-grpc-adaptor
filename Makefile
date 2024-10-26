@@ -40,4 +40,6 @@ generate: build
 	--go_opt=paths=source_relative \
 	--go-nats_out=. \
 	--go-nats_opt=paths=source_relative \
+	--go-grpc_out=. \
+	--go-grpc_opt=paths=source_relative \
 	example/example.proto

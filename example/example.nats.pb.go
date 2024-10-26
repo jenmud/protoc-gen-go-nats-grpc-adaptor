@@ -5,26 +5,194 @@ package example
 
 import (
 	"context"
-	"errors"
-	"github.com/nats-io/nats.go/micro"
+	proto "google.golang.org/protobuf/proto"
+	nats "github.com/nats-io/nats.go"
+	micro "github.com/nats-io/nats.go/micro"
 )
 
-type ExampleService interface {
-	SayHi(context.Context, *Request) (*Response, error)
-	SayBye(context.Context, *Request) (*Response, error)
-	Close(context.Context, *Empty) (*Empty, error)
-}
+// NATSMicroService extends the gRPC Server buy adding a method on the service which
+// returns a NATS registered micro.Service.
+func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
+	cfg := micro.Config{
+		Name:    "ExampleServiceServer",
+		Version: "0.0.0",
+	}
 
-type ExampleServiceUnimplemented struct{}
+	srv, err := micro.AddService(nc, cfg)
+	if err != nil {
+		return nil, err
+	}
 
-func (s *ExampleServiceUnimplemented) SayHi(ctx context.Context, req *Request) (*Response, error) {
-	return nil, errors.New("not implemented")
-}
+	err = srv.AddEndpoint(
+		"svc.SayHi",
+		micro.HandlerFunc(
+			func(req micro.Request) {
+				r := &Request{}
 
-func (s *ExampleServiceUnimplemented) SayBye(ctx context.Context, req *Request) (*Response, error) {
-	return nil, errors.New("not implemented")
-}
+				/*
+					Unmarshal the request.
+				*/
+				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
 
-func (s *ExampleServiceUnimplemented) Close(ctx context.Context, req *Empty) (*Empty, error) {
-	return nil, errors.New("not implemented")
+					return
+				}
+
+				/*
+					Forward on the original request to the original gRPC service.
+				*/
+				resp, err := s.SayHi(context.Todo(), r)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Take the response from the gRPC service and dump it as a byte array.
+				*/
+				respDump, err := proto.Marshal(resp)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Finally response with the original response from the gRPC service.
+				*/
+				if err := req.Respond(respDump); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+			},
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = srv.AddEndpoint(
+		"svc.SayBye",
+		micro.HandlerFunc(
+			func(req micro.Request) {
+				r := &Request{}
+
+				/*
+					Unmarshal the request.
+				*/
+				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+
+					return
+				}
+
+				/*
+					Forward on the original request to the original gRPC service.
+				*/
+				resp, err := s.SayBye(context.Todo(), r)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Take the response from the gRPC service and dump it as a byte array.
+				*/
+				respDump, err := proto.Marshal(resp)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Finally response with the original response from the gRPC service.
+				*/
+				if err := req.Respond(respDump); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+			},
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = srv.AddEndpoint(
+		"svc.Close",
+		micro.HandlerFunc(
+			func(req micro.Request) {
+				r := &Empty{}
+
+				/*
+					Unmarshal the request.
+				*/
+				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+
+					return
+				}
+
+				/*
+					Forward on the original request to the original gRPC service.
+				*/
+				resp, err := s.Close(context.Todo(), r)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Take the response from the gRPC service and dump it as a byte array.
+				*/
+				respDump, err := proto.Marshal(resp)
+				if err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+
+				/*
+					Finally response with the original response from the gRPC service.
+				*/
+				if err := req.Respond(respDump); err != nil {
+					if err := req.Error("500", err.Error(), nil); err != nil {
+						slog.Error("error sending response error", slog.String("reason", err.Error()))
+						return
+					}
+				}
+			},
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return srv, nil
 }
