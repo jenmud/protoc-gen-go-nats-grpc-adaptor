@@ -6,6 +6,8 @@ option go_package = "protoc-gen-go-nats-microservice/example";
 
 service ExampleService {
     rpc SayHi(Request) returns(Response);
+    rpc SayBye(Request) returns(Response);
+    rpc Close(Empty) returns(Empty);
 }
 
 
@@ -16,3 +18,5 @@ message Request{
 message Response{
     string greeting = 1;
 }
+
+message Empty{}

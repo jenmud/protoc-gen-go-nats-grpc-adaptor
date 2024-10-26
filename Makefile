@@ -31,5 +31,13 @@ update-deps:
 vendor: update-deps
 	PATH=$(PATH) go mod vendor
 
-generate:
-	@echo "generate is not yet implemented"
+build:
+	go build -o builds/protoc-gen-go-nats .
+
+generate: build
+	PATH=$(PATH):./builds protoc \
+	--go_out=. \
+	--go_opt=paths=source_relative \
+	--go-nats_out=. \
+	--go-nats_opt=paths=source_relative \
+	example/example.proto
