@@ -19,177 +19,147 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ExampleService_SayHi_FullMethodName  = "/example.ExampleService/SayHi"
-	ExampleService_SayBye_FullMethodName = "/example.ExampleService/SayBye"
-	ExampleService_Close_FullMethodName  = "/example.ExampleService/Close"
+	Greeter_SayHello_FullMethodName      = "/example.Greeter/SayHello"
+	Greeter_SayHelloAgain_FullMethodName = "/example.Greeter/SayHelloAgain"
 )
 
-// ExampleServiceClient is the client API for ExampleService service.
+// GreeterClient is the client API for Greeter service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ExampleServiceClient interface {
-	SayHi(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
-	SayBye(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
-	Close(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+//
+// The greeting service definition.
+type GreeterClient interface {
+	// Sends a greeting
+	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+	// Sends another greeting
+	SayHelloAgain(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 }
 
-type exampleServiceClient struct {
+type greeterClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewExampleServiceClient(cc grpc.ClientConnInterface) ExampleServiceClient {
-	return &exampleServiceClient{cc}
+func NewGreeterClient(cc grpc.ClientConnInterface) GreeterClient {
+	return &greeterClient{cc}
 }
 
-func (c *exampleServiceClient) SayHi(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Response)
-	err := c.cc.Invoke(ctx, ExampleService_SayHi_FullMethodName, in, out, cOpts...)
+	out := new(HelloReply)
+	err := c.cc.Invoke(ctx, Greeter_SayHello_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *exampleServiceClient) SayBye(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+func (c *greeterClient) SayHelloAgain(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Response)
-	err := c.cc.Invoke(ctx, ExampleService_SayBye_FullMethodName, in, out, cOpts...)
+	out := new(HelloReply)
+	err := c.cc.Invoke(ctx, Greeter_SayHelloAgain_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *exampleServiceClient) Close(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, ExampleService_Close_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// ExampleServiceServer is the server API for ExampleService service.
-// All implementations must embed UnimplementedExampleServiceServer
+// GreeterServer is the server API for Greeter service.
+// All implementations must embed UnimplementedGreeterServer
 // for forward compatibility.
-type ExampleServiceServer interface {
-	SayHi(context.Context, *Request) (*Response, error)
-	SayBye(context.Context, *Request) (*Response, error)
-	Close(context.Context, *Empty) (*Empty, error)
-	mustEmbedUnimplementedExampleServiceServer()
+//
+// The greeting service definition.
+type GreeterServer interface {
+	// Sends a greeting
+	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+	// Sends another greeting
+	SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error)
+	mustEmbedUnimplementedGreeterServer()
 }
 
-// UnimplementedExampleServiceServer must be embedded to have
+// UnimplementedGreeterServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedExampleServiceServer struct{}
+type UnimplementedGreeterServer struct{}
 
-func (UnimplementedExampleServiceServer) SayHi(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHi not implemented")
+func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
 }
-func (UnimplementedExampleServiceServer) SayBye(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayBye not implemented")
+func (UnimplementedGreeterServer) SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SayHelloAgain not implemented")
 }
-func (UnimplementedExampleServiceServer) Close(context.Context, *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
-}
-func (UnimplementedExampleServiceServer) mustEmbedUnimplementedExampleServiceServer() {}
-func (UnimplementedExampleServiceServer) testEmbeddedByValue()                        {}
+func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
+func (UnimplementedGreeterServer) testEmbeddedByValue()                 {}
 
-// UnsafeExampleServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ExampleServiceServer will
+// UnsafeGreeterServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GreeterServer will
 // result in compilation errors.
-type UnsafeExampleServiceServer interface {
-	mustEmbedUnimplementedExampleServiceServer()
+type UnsafeGreeterServer interface {
+	mustEmbedUnimplementedGreeterServer()
 }
 
-func RegisterExampleServiceServer(s grpc.ServiceRegistrar, srv ExampleServiceServer) {
-	// If the following call pancis, it indicates UnimplementedExampleServiceServer was
+func RegisterGreeterServer(s grpc.ServiceRegistrar, srv GreeterServer) {
+	// If the following call pancis, it indicates UnimplementedGreeterServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&ExampleService_ServiceDesc, srv)
+	s.RegisterService(&Greeter_ServiceDesc, srv)
 }
 
-func _ExampleService_SayHi_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ExampleServiceServer).SayHi(ctx, in)
+		return srv.(GreeterServer).SayHello(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ExampleService_SayHi_FullMethodName,
+		FullMethod: Greeter_SayHello_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ExampleServiceServer).SayHi(ctx, req.(*Request))
+		return srv.(GreeterServer).SayHello(ctx, req.(*HelloRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ExampleService_SayBye_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+func _Greeter_SayHelloAgain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HelloRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ExampleServiceServer).SayBye(ctx, in)
+		return srv.(GreeterServer).SayHelloAgain(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ExampleService_SayBye_FullMethodName,
+		FullMethod: Greeter_SayHelloAgain_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ExampleServiceServer).SayBye(ctx, req.(*Request))
+		return srv.(GreeterServer).SayHelloAgain(ctx, req.(*HelloRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ExampleService_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ExampleServiceServer).Close(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ExampleService_Close_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ExampleServiceServer).Close(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// ExampleService_ServiceDesc is the grpc.ServiceDesc for ExampleService service.
+// Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ExampleService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "example.ExampleService",
-	HandlerType: (*ExampleServiceServer)(nil),
+var Greeter_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "example.Greeter",
+	HandlerType: (*GreeterServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SayHi",
-			Handler:    _ExampleService_SayHi_Handler,
+			MethodName: "SayHello",
+			Handler:    _Greeter_SayHello_Handler,
 		},
 		{
-			MethodName: "SayBye",
-			Handler:    _ExampleService_SayBye_Handler,
-		},
-		{
-			MethodName: "Close",
-			Handler:    _ExampleService_Close_Handler,
+			MethodName: "SayHelloAgain",
+			Handler:    _Greeter_SayHelloAgain_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

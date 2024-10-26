@@ -5,6 +5,7 @@ package example
 
 import (
 	"context"
+	"log/slog"
 	proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -12,9 +13,9 @@ import (
 
 // NATSMicroService extends the gRPC Server buy adding a method on the service which
 // returns a NATS registered micro.Service.
-func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
+func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 	cfg := micro.Config{
-		Name:    "ExampleServiceServer",
+		Name:    "GreeterServer",
 		Version: "0.0.0",
 	}
 
@@ -24,10 +25,10 @@ func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, e
 	}
 
 	err = srv.AddEndpoint(
-		"svc.SayHi",
+		"svc.SayHello",
 		micro.HandlerFunc(
 			func(req micro.Request) {
-				r := &Request{}
+				r := &HelloRequest{}
 
 				/*
 					Unmarshal the request.
@@ -44,7 +45,7 @@ func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, e
 				/*
 					Forward on the original request to the original gRPC service.
 				*/
-				resp, err := s.SayHi(context.Todo(), r)
+				resp, err := s.SayHello(context.TODO(), r)
 				if err != nil {
 					if err := req.Error("500", err.Error(), nil); err != nil {
 						slog.Error("error sending response error", slog.String("reason", err.Error()))
@@ -81,10 +82,10 @@ func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, e
 	}
 
 	err = srv.AddEndpoint(
-		"svc.SayBye",
+		"svc.SayHelloAgain",
 		micro.HandlerFunc(
 			func(req micro.Request) {
-				r := &Request{}
+				r := &HelloRequest{}
 
 				/*
 					Unmarshal the request.
@@ -101,64 +102,7 @@ func (s *ExampleServiceServer) NATSMicroService(nc *nats.Conn) (micro.Service, e
 				/*
 					Forward on the original request to the original gRPC service.
 				*/
-				resp, err := s.SayBye(context.Todo(), r)
-				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-				}
-
-				/*
-					Take the response from the gRPC service and dump it as a byte array.
-				*/
-				respDump, err := proto.Marshal(resp)
-				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-				}
-
-				/*
-					Finally response with the original response from the gRPC service.
-				*/
-				if err := req.Respond(respDump); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-				}
-			},
-		),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = srv.AddEndpoint(
-		"svc.Close",
-		micro.HandlerFunc(
-			func(req micro.Request) {
-				r := &Empty{}
-
-				/*
-					Unmarshal the request.
-				*/
-				if err := proto.Unmarshal(req.Data(), r); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-
-					return
-				}
-
-				/*
-					Forward on the original request to the original gRPC service.
-				*/
-				resp, err := s.Close(context.Todo(), r)
+				resp, err := s.SayHelloAgain(context.TODO(), r)
 				if err != nil {
 					if err := req.Error("500", err.Error(), nil); err != nil {
 						slog.Error("error sending response error", slog.String("reason", err.Error()))

@@ -33,6 +33,7 @@ package {{.GoPackageName}}
 
 import (
     "context"
+    "log/slog"
     proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -75,7 +76,7 @@ func (s *{{ .GoName }}Server) NATSMicroService(nc *nats.Conn) (micro.Service, er
                 /*
                 	Forward on the original request to the original gRPC service.
                 */
-                resp, err := s.{{ .GoName }}(context.Todo(), r)
+                resp, err := s.{{ .GoName }}(context.TODO(), r)
                 if err != nil {
                		if err := req.Error("500", err.Error(), nil); err != nil {
               			slog.Error("error sending response error", slog.String("reason", err.Error()))
