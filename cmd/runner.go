@@ -39,11 +39,21 @@ import (
 	micro "github.com/nats-io/nats.go/micro"
 )
 
+// handleError is a helper which response with the error.
+func handleError(req micro.Request, err error) {
+	if sendErr := req.Error("500", err.Error(), nil); sendErr != nil {
+		slog.Error(
+			"error sending response error",
+			slog.String("reason", sendErr.Error()),
+			slog.String("subject", req.Subject()),
+		)
+	}
+}
+
 {{ range .Services }}
 
-// NATSMicroService extends the gRPC Server buy adding a method on the service which
-// returns a NATS registered micro.Service.
-func (s *{{ .GoName }}Server) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
+// NewNATS{{ .GoName }}Server returns the gRPC server as a NATS micro service.
+func NewNATS{{ .GoName }}Server(nc *nats.Conn, s {{ .GoName }}Server) (micro.Service, error) {
     cfg := micro.Config{
     	Name: "{{ .GoName }}Server",
         Version: "0.0.0",
@@ -65,11 +75,7 @@ func (s *{{ .GoName }}Server) NATSMicroService(nc *nats.Conn) (micro.Service, er
              		Unmarshal the request.
              	*/
          		if err := proto.Unmarshal(req.Data(), r); err != nil {
-           			if err := req.Error("500", err.Error(), nil); err != nil {
-              			slog.Error("error sending response error", slog.String("reason", err.Error()))
-                 		return
-              		}
-
+           			handleError(req, err)
                 	return
                 }
 
@@ -78,10 +84,8 @@ func (s *{{ .GoName }}Server) NATSMicroService(nc *nats.Conn) (micro.Service, er
                 */
                 resp, err := s.{{ .GoName }}(context.TODO(), r)
                 if err != nil {
-               		if err := req.Error("500", err.Error(), nil); err != nil {
-              			slog.Error("error sending response error", slog.String("reason", err.Error()))
-                 		return
-                 	}
+             		handleError(req, err)
+               		return
                 }
 
                 /*
@@ -89,20 +93,16 @@ func (s *{{ .GoName }}Server) NATSMicroService(nc *nats.Conn) (micro.Service, er
                 */
                 respDump, err := proto.Marshal(resp)
                 if err != nil {
-               		if err := req.Error("500", err.Error(), nil); err != nil {
-              			slog.Error("error sending response error", slog.String("reason", err.Error()))
-                 		return
-                 	}
+              		handleError(req, err)
+                	return
                 }
 
                 /*
                 	Finally response with the original response from the gRPC service.
                 */
                 if err := req.Respond(respDump); err != nil {
-               		if err := req.Error("500", err.Error(), nil); err != nil {
-              			slog.Error("error sending response error", slog.String("reason", err.Error()))
-                 		return
-                 	}
+              		handleError(req, err)
+                	return
                 }
          	},
         ),

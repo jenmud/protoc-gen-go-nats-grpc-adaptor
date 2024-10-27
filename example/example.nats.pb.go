@@ -11,9 +11,19 @@ import (
 	micro "github.com/nats-io/nats.go/micro"
 )
 
-// NATSMicroService extends the gRPC Server buy adding a method on the service which
-// returns a NATS registered micro.Service.
-func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
+// handleError is a helper which response with the error.
+func handleError(req micro.Request, err error) {
+	if sendErr := req.Error("500", err.Error(), nil); sendErr != nil {
+		slog.Error(
+			"error sending response error",
+			slog.String("reason", sendErr.Error()),
+			slog.String("subject", req.Subject()),
+		)
+	}
+}
+
+// NewNATSGreeterServer returns the gRPC server as a NATS micro service.
+func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error) {
 	cfg := micro.Config{
 		Name:    "GreeterServer",
 		Version: "0.0.0",
@@ -34,11 +44,7 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 					Unmarshal the request.
 				*/
 				if err := proto.Unmarshal(req.Data(), r); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-
+					handleError(req, err)
 					return
 				}
 
@@ -47,10 +53,8 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 				*/
 				resp, err := s.SayHello(context.TODO(), r)
 				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 
 				/*
@@ -58,20 +62,16 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 				*/
 				respDump, err := proto.Marshal(resp)
 				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 
 				/*
 					Finally response with the original response from the gRPC service.
 				*/
 				if err := req.Respond(respDump); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 			},
 		),
@@ -91,11 +91,7 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 					Unmarshal the request.
 				*/
 				if err := proto.Unmarshal(req.Data(), r); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
-
+					handleError(req, err)
 					return
 				}
 
@@ -104,10 +100,8 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 				*/
 				resp, err := s.SayHelloAgain(context.TODO(), r)
 				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 
 				/*
@@ -115,20 +109,16 @@ func (s *GreeterServer) NATSMicroService(nc *nats.Conn) (micro.Service, error) {
 				*/
 				respDump, err := proto.Marshal(resp)
 				if err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 
 				/*
 					Finally response with the original response from the gRPC service.
 				*/
 				if err := req.Respond(respDump); err != nil {
-					if err := req.Error("500", err.Error(), nil); err != nil {
-						slog.Error("error sending response error", slog.String("reason", err.Error()))
-						return
-					}
+					handleError(req, err)
+					return
 				}
 			},
 		),
