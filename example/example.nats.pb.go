@@ -135,3 +135,11 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 
 	return srv, nil
 }
+
+// NATSGreeterClient is a client connecting to a NATS GreeterServer.
+type NATSGreeterClient struct{}
+
+// NewNATSGreeterClient returns a new GreeterServer client.
+func NewNATSGreeterClient(nc *nats.Conn) *NATSGreeterClient {
+	return &NATSGreeterClient{}
+}

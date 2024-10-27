@@ -120,7 +120,15 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
     return srv, nil
 }
 
+// NATS{{ .GoName }}Client is a client connecting to a NATS {{ .GoName }}Server.
+type NATS{{ .GoName }}Client struct {}
+
+// NewNATS{{ .GoName }}Client returns a new {{ .GoName }}Server client.
+func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
+	return &NATS{{ .GoName }}Client{}
+}
 {{ end }}
+
 `
 
 // generateFile generates a .pb.go file.
