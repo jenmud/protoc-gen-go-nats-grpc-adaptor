@@ -133,13 +133,134 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		return nil, err
 	}
 
+	err = srv.AddEndpoint(
+		subject+"."+serviceName+".SayGoodbye",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				r := &SayGoodbyeRequest{}
+
+				/*
+					Unmarshal the request.
+				*/
+				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					handleError(req, err)
+					return
+				}
+
+				/*
+					Forward on the original request to the original gRPC service.
+				*/
+				resp, err := server.SayGoodbye(ctx, r)
+				if err != nil {
+					handleError(req, err)
+					return
+				}
+
+				/*
+					Take the response from the gRPC service and dump it as a byte array.
+				*/
+				respDump, err := proto.Marshal(resp)
+				if err != nil {
+					handleError(req, err)
+					return
+				}
+
+				/*
+					Finally response with the original response from the gRPC service.
+				*/
+				if err := req.Respond(respDump); err != nil {
+					handleError(req, err)
+					return
+				}
+			},
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return srv, nil
 }
 
 // NATSGreeterClient is a client connecting to a NATS GreeterServer.
-type NATSGreeterClient struct{}
+type NATSGreeterClient struct {
+	nc      *nats.Conn
+	subject string
+	queue   string
+}
 
 // NewNATSGreeterClient returns a new GreeterServer client.
-func NewNATSGreeterClient(nc *nats.Conn) *NATSGreeterClient {
-	return &NATSGreeterClient{}
+func NewNATSGreeterClient(nc *nats.Conn, subject, queue string) *NATSGreeterClient {
+	return &NATSGreeterClient{
+		nc:      nc,
+		subject: subject,
+		queue:   queue,
+	}
+}
+
+// Sends a greeting
+func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
+	subject := c.subject + ".SayHello"
+
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &HelloReply{}
+	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// Sends another greeting
+func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
+	subject := c.subject + ".SayHelloAgain"
+
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &HelloReply{}
+	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeRequest) (*SayGoodbyeReply, error) {
+	subject := c.subject + ".SayGoodbye"
+
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &SayGoodbyeReply{}
+	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

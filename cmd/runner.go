@@ -121,22 +121,50 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
 }
 
 // NATS{{ .GoName }}Client is a client connecting to a NATS {{ .GoName }}Server.
-type NATS{{ .GoName }}Client struct {}
+type NATS{{ .GoName }}Client struct {
+	nc *nats.Conn
+	subject string
+	queue string
+}
 
 // NewNATS{{ .GoName }}Client returns a new {{ .GoName }}Server client.
-func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
-	return &NATS{{ .GoName }}Client{}
+func NewNATS{{ .GoName }}Client(nc *nats.Conn, subject, queue string) *NATS{{ .GoName }}Client {
+	return &NATS{{ .GoName }}Client{
+		nc: nc,
+		subject: subject,
+		queue: queue,
+	}
 }
+
+{{ range .Methods }}
+{{ .Comments.Leading }}func (c *NATS{{ .Parent.GoName }}Client) {{ .GoName }}(ctx context.Context, req *{{ .Input.GoIdent.GoName }}) (*{{ .Output.GoIdent.GoName }}, error) {
+	subject := c.subject + ".{{ .GoName }}"
+
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &{{ .Output.GoIdent.GoName }}{}
+	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+{{ end }}
+
 {{ end }}
 
 `
 
 // generateFile generates a .pb.go file.
 func generateFile(gen *protogen.Plugin, file *protogen.File) error {
-
-	for _, s := range file.Services {
-		slog.Info("--->", slog.Any("value", s.Desc.Options()))
-	}
 
 	tmpl, err := template.New("nats-micro-service").Parse(templ)
 	if err != nil {

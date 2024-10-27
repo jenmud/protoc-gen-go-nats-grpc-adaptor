@@ -11,6 +11,8 @@ service Greeter {
 
   // Sends another greeting
   rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+
+  rpc SayGoodbye (SayGoodbyeRequest) returns (SayGoodbyeReply) {}
 }
 
 // The request message containing the user's name.
@@ -20,5 +22,13 @@ message HelloRequest {
 
 // The response message containing the greetings
 message HelloReply {
+  string message = 1;
+}
+
+message SayGoodbyeRequest {
+  string name = 1;
+}
+
+message SayGoodbyeReply {
   string message = 1;
 }
