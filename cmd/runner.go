@@ -131,7 +131,7 @@ type NATS{{ .GoName }}Client struct {
 func NewNATS{{ .GoName }}Client(nc *nats.Conn, subject, queue string) *NATS{{ .GoName }}Client {
 	return &NATS{{ .GoName }}Client{
 		nc: nc,
-		subject: subject,
+		subject: subject + "{{ .GoName }}Server",
 		queue: queue,
 	}
 }

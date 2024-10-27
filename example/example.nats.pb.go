@@ -195,7 +195,7 @@ type NATSGreeterClient struct {
 func NewNATSGreeterClient(nc *nats.Conn, subject, queue string) *NATSGreeterClient {
 	return &NATSGreeterClient{
 		nc:      nc,
-		subject: subject,
+		subject: subject + "GreeterServer",
 		queue:   queue,
 	}
 }
