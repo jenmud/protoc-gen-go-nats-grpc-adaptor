@@ -23,10 +23,13 @@ func handleError(req micro.Request, err error) {
 }
 
 // NewNATSGreeterServer returns the gRPC server as a NATS micro service.
-func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error) {
+func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, version, subject, queue string) (micro.Service, error) {
+	serviceName := "GreeterServer"
+
 	cfg := micro.Config{
-		Name:    "GreeterServer",
-		Version: "0.0.0",
+		Name:       serviceName,
+		Version:    version,
+		QueueGroup: queue,
 	}
 
 	srv, err := micro.AddService(nc, cfg)
@@ -35,9 +38,10 @@ func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error)
 	}
 
 	err = srv.AddEndpoint(
-		"svc.SayHello",
-		micro.HandlerFunc(
-			func(req micro.Request) {
+		subject+"."+serviceName+".SayHello",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
 				r := &HelloRequest{}
 
 				/*
@@ -51,7 +55,7 @@ func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error)
 				/*
 					Forward on the original request to the original gRPC service.
 				*/
-				resp, err := s.SayHello(context.TODO(), r)
+				resp, err := server.SayHello(ctx, r)
 				if err != nil {
 					handleError(req, err)
 					return
@@ -82,9 +86,10 @@ func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error)
 	}
 
 	err = srv.AddEndpoint(
-		"svc.SayHelloAgain",
-		micro.HandlerFunc(
-			func(req micro.Request) {
+		subject+"."+serviceName+".SayHelloAgain",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
 				r := &HelloRequest{}
 
 				/*
@@ -98,7 +103,7 @@ func NewNATSGreeterServer(nc *nats.Conn, s GreeterServer) (micro.Service, error)
 				/*
 					Forward on the original request to the original gRPC service.
 				*/
-				resp, err := s.SayHelloAgain(context.TODO(), r)
+				resp, err := server.SayHelloAgain(ctx, r)
 				if err != nil {
 					handleError(req, err)
 					return

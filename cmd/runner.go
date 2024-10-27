@@ -53,10 +53,13 @@ func handleError(req micro.Request, err error) {
 {{ range .Services }}
 
 // NewNATS{{ .GoName }}Server returns the gRPC server as a NATS micro service.
-func NewNATS{{ .GoName }}Server(nc *nats.Conn, s {{ .GoName }}Server) (micro.Service, error) {
+func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, version, subject, queue string) (micro.Service, error) {
+	serviceName := "{{ .GoName }}Server"
+
     cfg := micro.Config{
-    	Name: "{{ .GoName }}Server",
-        Version: "0.0.0",
+    	Name: serviceName,
+        Version: version,
+        QueueGroup: queue,
     }
 
     srv, err := micro.AddService(nc, cfg)
@@ -66,9 +69,10 @@ func NewNATS{{ .GoName }}Server(nc *nats.Conn, s {{ .GoName }}Server) (micro.Ser
 
     {{ range .Methods }}
     err = srv.AddEndpoint(
-        "svc.{{ .GoName }}",
-        micro.HandlerFunc(
-        	func(req micro.Request){
+        subject + "." + serviceName + ".{{ .GoName }}",
+        micro.ContextHandler(
+        	ctx,
+        	func(ctx context.Context, req micro.Request){
          		r := &{{ .Input.GoIdent.GoName }}{}
 
            		/*
@@ -82,7 +86,7 @@ func NewNATS{{ .GoName }}Server(nc *nats.Conn, s {{ .GoName }}Server) (micro.Ser
                 /*
                 	Forward on the original request to the original gRPC service.
                 */
-                resp, err := s.{{ .GoName }}(context.TODO(), r)
+                resp, err := server.{{ .GoName }}(ctx, r)
                 if err != nil {
              		handleError(req, err)
                		return
@@ -121,6 +125,10 @@ func NewNATS{{ .GoName }}Server(nc *nats.Conn, s {{ .GoName }}Server) (micro.Ser
 
 // generateFile generates a .pb.go file.
 func generateFile(gen *protogen.Plugin, file *protogen.File) error {
+
+	for _, s := range file.Services {
+		slog.Info("--->", slog.Any("value", s.Desc.Options()))
+	}
 
 	tmpl, err := template.New("nats-micro-service").Parse(templ)
 	if err != nil {
