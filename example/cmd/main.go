@@ -76,7 +76,7 @@ func main() {
 
 	againResp, err := client.SayHelloAgain(ctx, &proto.HelloRequest{Name: "FooBar"})
 	if err != nil {
-		logger.Error("error saying hello", slog.String("reason", err.Error()))
+		logger.Error("error saying hello AGAIN", slog.String("reason", err.Error()))
 	}
 
 	logger.Info("again resp: " + againResp.GetMessage())

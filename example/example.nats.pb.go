@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+	"errors"
 	proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -274,6 +275,11 @@ func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*H
 		return nil, err
 	}
 
+	rpcError := respPayload.Header.Get(micro.ErrorHeader)
+	if rpcError != "" {
+		return nil, errors.New(rpcError)
+	}
+
 	resp := &HelloReply{}
 	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
@@ -296,6 +302,11 @@ func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest
 		return nil, err
 	}
 
+	rpcError := respPayload.Header.Get(micro.ErrorHeader)
+	if rpcError != "" {
+		return nil, errors.New(rpcError)
+	}
+
 	resp := &HelloReply{}
 	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
@@ -315,6 +326,11 @@ func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeReque
 	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
 	if err != nil {
 		return nil, err
+	}
+
+	rpcError := respPayload.Header.Get(micro.ErrorHeader)
+	if rpcError != "" {
+		return nil, errors.New(rpcError)
 	}
 
 	resp := &SayGoodbyeReply{}

@@ -35,6 +35,7 @@ import (
     "context"
     "log/slog"
     "strings"
+    "errors"
     proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -176,6 +177,11 @@ func NewNATS{{ .GoName }}Client(nc *nats.Conn, queue string) *NATS{{ .GoName }}C
 	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
 	if err != nil {
 		return nil, err
+	}
+
+	rpcError := respPayload.Header.Get(micro.ErrorHeader)
+	if rpcError != "" {
+		return nil, errors.New(rpcError)
 	}
 
 	resp := &{{ .Output.GoIdent.GoName }}{}
