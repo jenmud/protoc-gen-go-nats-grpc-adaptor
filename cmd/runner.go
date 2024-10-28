@@ -34,6 +34,7 @@ package {{.GoPackageName}}
 import (
     "context"
     "log/slog"
+    "strings"
     proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -67,9 +68,31 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         return nil, err
     }
 
+    logger := slog.With(
+     	slog.Group(
+      		"service",
+        	slog.String("name", serviceName),
+       		slog.String("version", version),
+       		slog.String("queue", queue),
+      	),
+    )
+
+    var endpointSubject string
+    var mlogger *slog.Logger
+
     {{ range .Methods }}
+    endpointSubject = strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+
+    mlogger = logger.With(
+     	slog.Group(
+      		"endpoint",
+       		slog.String("subject", endpointSubject),
+      	),
+    )
+
+    mlogger.Info("registring endpoint")
     err = srv.AddEndpoint(
-        subject + "." + serviceName + ".{{ .GoName }}",
+        "{{ .Parent.GoName }}",
         micro.ContextHandler(
         	ctx,
         	func(ctx context.Context, req micro.Request){
@@ -79,6 +102,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
              		Unmarshal the request.
              	*/
          		if err := proto.Unmarshal(req.Data(), r); err != nil {
+           			mlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
            			handleError(req, err)
                 	return
                 }
@@ -88,6 +112,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
                 */
                 resp, err := server.{{ .GoName }}(ctx, r)
                 if err != nil {
+             		mlogger.Error("service error", slog.String("reason", err.Error()))
              		handleError(req, err)
                		return
                 }
@@ -97,6 +122,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
                 */
                 respDump, err := proto.Marshal(resp)
                 if err != nil {
+              		mlogger.Error("marshaling response", slog.String("reason", err.Error()))
               		handleError(req, err)
                 	return
                 }
@@ -105,14 +131,17 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
                 	Finally response with the original response from the gRPC service.
                 */
                 if err := req.Respond(respDump); err != nil {
+              		mlogger.Error("sending response", slog.String("reason", err.Error()))
               		handleError(req, err)
                 	return
                 }
          	},
         ),
+        micro.WithEndpointSubject(endpointSubject),
     )
 
     if err != nil {
+    	mlogger.Error("registering endpoint", slog.String("reason", err.Error()))
         return nil, err
     }
     {{ end }}
@@ -128,17 +157,16 @@ type NATS{{ .GoName }}Client struct {
 }
 
 // NewNATS{{ .GoName }}Client returns a new {{ .GoName }}Server client.
-func NewNATS{{ .GoName }}Client(nc *nats.Conn, subject, queue string) *NATS{{ .GoName }}Client {
+func NewNATS{{ .GoName }}Client(nc *nats.Conn, queue string) *NATS{{ .GoName }}Client {
 	return &NATS{{ .GoName }}Client{
 		nc: nc,
-		subject: subject + "{{ .GoName }}Server",
 		queue: queue,
 	}
 }
 
 {{ range .Methods }}
 {{ .Comments.Leading }}func (c *NATS{{ .Parent.GoName }}Client) {{ .GoName }}(ctx context.Context, req *{{ .Input.GoIdent.GoName }}) (*{{ .Output.GoIdent.GoName }}, error) {
-	subject := c.subject + ".{{ .GoName }}"
+	subject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
 	payload, err := proto.Marshal(req)
 	if err != nil {

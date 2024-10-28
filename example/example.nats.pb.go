@@ -6,6 +6,7 @@ package example
 import (
 	"context"
 	"log/slog"
+	"strings"
 	proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
@@ -37,8 +38,30 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		return nil, err
 	}
 
+	logger := slog.With(
+		slog.Group(
+			"service",
+			slog.String("name", serviceName),
+			slog.String("version", version),
+			slog.String("queue", queue),
+		),
+	)
+
+	var endpointSubject string
+	var mlogger *slog.Logger
+
+	endpointSubject = strings.ToLower("svc.Greeter.SayHello")
+
+	mlogger = logger.With(
+		slog.Group(
+			"endpoint",
+			slog.String("subject", endpointSubject),
+		),
+	)
+
+	mlogger.Info("registring endpoint")
 	err = srv.AddEndpoint(
-		subject+"."+serviceName+".SayHello",
+		"Greeter",
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
@@ -48,6 +71,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Unmarshal the request.
 				*/
 				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					mlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -57,6 +81,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				resp, err := server.SayHello(ctx, r)
 				if err != nil {
+					mlogger.Error("service error", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -66,6 +91,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				respDump, err := proto.Marshal(resp)
 				if err != nil {
+					mlogger.Error("marshaling response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -74,19 +100,32 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Finally response with the original response from the gRPC service.
 				*/
 				if err := req.Respond(respDump); err != nil {
+					mlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 			},
 		),
+		micro.WithEndpointSubject(endpointSubject),
 	)
 
 	if err != nil {
+		mlogger.Error("registering endpoint", slog.String("reason", err.Error()))
 		return nil, err
 	}
 
+	endpointSubject = strings.ToLower("svc.Greeter.SayHelloAgain")
+
+	mlogger = logger.With(
+		slog.Group(
+			"endpoint",
+			slog.String("subject", endpointSubject),
+		),
+	)
+
+	mlogger.Info("registring endpoint")
 	err = srv.AddEndpoint(
-		subject+"."+serviceName+".SayHelloAgain",
+		"Greeter",
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
@@ -96,6 +135,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Unmarshal the request.
 				*/
 				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					mlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -105,6 +145,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				resp, err := server.SayHelloAgain(ctx, r)
 				if err != nil {
+					mlogger.Error("service error", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -114,6 +155,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				respDump, err := proto.Marshal(resp)
 				if err != nil {
+					mlogger.Error("marshaling response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -122,19 +164,32 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Finally response with the original response from the gRPC service.
 				*/
 				if err := req.Respond(respDump); err != nil {
+					mlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 			},
 		),
+		micro.WithEndpointSubject(endpointSubject),
 	)
 
 	if err != nil {
+		mlogger.Error("registering endpoint", slog.String("reason", err.Error()))
 		return nil, err
 	}
 
+	endpointSubject = strings.ToLower("svc.Greeter.SayGoodbye")
+
+	mlogger = logger.With(
+		slog.Group(
+			"endpoint",
+			slog.String("subject", endpointSubject),
+		),
+	)
+
+	mlogger.Info("registring endpoint")
 	err = srv.AddEndpoint(
-		subject+"."+serviceName+".SayGoodbye",
+		"Greeter",
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
@@ -144,6 +199,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Unmarshal the request.
 				*/
 				if err := proto.Unmarshal(req.Data(), r); err != nil {
+					mlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -153,6 +209,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				resp, err := server.SayGoodbye(ctx, r)
 				if err != nil {
+					mlogger.Error("service error", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -162,6 +219,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				*/
 				respDump, err := proto.Marshal(resp)
 				if err != nil {
+					mlogger.Error("marshaling response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
@@ -170,14 +228,17 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					Finally response with the original response from the gRPC service.
 				*/
 				if err := req.Respond(respDump); err != nil {
+					mlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 			},
 		),
+		micro.WithEndpointSubject(endpointSubject),
 	)
 
 	if err != nil {
+		mlogger.Error("registering endpoint", slog.String("reason", err.Error()))
 		return nil, err
 	}
 
@@ -192,17 +253,16 @@ type NATSGreeterClient struct {
 }
 
 // NewNATSGreeterClient returns a new GreeterServer client.
-func NewNATSGreeterClient(nc *nats.Conn, subject, queue string) *NATSGreeterClient {
+func NewNATSGreeterClient(nc *nats.Conn, queue string) *NATSGreeterClient {
 	return &NATSGreeterClient{
-		nc:      nc,
-		subject: subject + "GreeterServer",
-		queue:   queue,
+		nc:    nc,
+		queue: queue,
 	}
 }
 
 // Sends a greeting
 func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
-	subject := c.subject + ".SayHello"
+	subject := strings.ToLower("svc.Greeter.SayHello")
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
@@ -224,7 +284,7 @@ func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*H
 
 // Sends another greeting
 func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
-	subject := c.subject + ".SayHelloAgain"
+	subject := strings.ToLower("svc.Greeter.SayHelloAgain")
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
@@ -245,7 +305,7 @@ func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest
 }
 
 func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeRequest) (*SayGoodbyeReply, error) {
-	subject := c.subject + ".SayGoodbye"
+	subject := strings.ToLower("svc.Greeter.SayGoodbye")
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
