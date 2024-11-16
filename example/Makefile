@@ -5,7 +5,7 @@ PATH=$(GOROOT)/bin:$(GOPATH)/bin:$(PROTOC_PATH)/bin:/usr/bin:/usr/local/bin:$$PA
 
 all: generate
 
-generate: build
+generate:
 	PATH=$(PATH):./builds protoc \
 	--proto_path=./ \
 	--go_out=./ \
