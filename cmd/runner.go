@@ -205,15 +205,14 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 		return err
 	}
 
-	filename := file.GeneratedFilenamePrefix + ".nats.pb.go"
-
-	logger := slog.With("filename", filename)
-	logger.Info("generating the files")
-
 	if len(file.Services) == 0 {
 		// nothing to do here - no services found in this file.
 		return nil
 	}
+
+	filename := file.GeneratedFilenamePrefix + ".nats.pb.go"
+	logger := slog.With("filename", filename)
+	logger.Info("generating the files")
 
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 	if err := tmpl.Execute(g, file); err != nil {

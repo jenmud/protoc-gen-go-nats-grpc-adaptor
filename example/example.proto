@@ -3,6 +3,7 @@ syntax = "proto3";
 package example;
 
 option go_package = "protoc-gen-go-nats-microservice/example";
+import "messages.proto";
 
 // The greeting service definition.
 service Greeter {
@@ -13,22 +14,4 @@ service Greeter {
   rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
 
   rpc SayGoodbye (SayGoodbyeRequest) returns (SayGoodbyeReply) {}
-}
-
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-}
-
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
-}
-
-message SayGoodbyeRequest {
-  string name = 1;
-}
-
-message SayGoodbyeReply {
-  string message = 1;
 }
