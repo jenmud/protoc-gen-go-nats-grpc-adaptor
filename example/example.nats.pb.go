@@ -11,7 +11,12 @@ import (
 	proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var tracer = otel.Tracer("example.proto")
 
 // handleError is a helper which response with the error.
 func handleError(req micro.Request, err error) {
@@ -66,6 +71,9 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
+				ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
 				r := &HelloRequest{}
 
 				/*
@@ -130,6 +138,9 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
+				ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
 				r := &HelloRequest{}
 
 				/*
@@ -194,6 +205,9 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
+				ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
 				r := &SayGoodbyeRequest{}
 
 				/*
@@ -265,6 +279,9 @@ func NewNATSGreeterClient(nc *nats.Conn, queue string) *NATSGreeterClient {
 func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
 	subject := strings.ToLower("svc.Greeter.SayHello")
 
+	ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", subject)))
+	defer span.End()
+
 	payload, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -292,6 +309,9 @@ func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*H
 func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
 	subject := strings.ToLower("svc.Greeter.SayHelloAgain")
 
+	ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", subject)))
+	defer span.End()
+
 	payload, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -317,6 +337,9 @@ func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest
 
 func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeRequest) (*SayGoodbyeReply, error) {
 	subject := strings.ToLower("svc.Greeter.SayGoodbye")
+
+	ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", subject)))
+	defer span.End()
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
