@@ -36,10 +36,11 @@ build:
 
 generate: build
 	PATH=$(PATH):./builds protoc \
-	--go_out=. \
+	--proto_path=./example \
+	--go_out=./example \
 	--go_opt=paths=source_relative \
-	--go-nats_out=. \
+	--go-nats_out=./example \
 	--go-nats_opt=paths=source_relative \
-	--go-grpc_out=. \
+	--go-grpc_out=./example \
 	--go-grpc_opt=paths=source_relative \
-	example/example.proto
+	messages.proto example.proto

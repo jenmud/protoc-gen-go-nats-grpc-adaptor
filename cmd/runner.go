@@ -210,6 +210,11 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 	logger := slog.With("filename", filename)
 	logger.Info("generating the files")
 
+	if len(file.Services) == 0 {
+		// nothing to do here - no services found in this file.
+		return nil
+	}
+
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
 	if err := tmpl.Execute(g, file); err != nil {
 		logger.Error("failed to execute the template", slog.String("reason", err.Error()))
