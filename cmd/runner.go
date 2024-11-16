@@ -39,7 +39,12 @@ import (
     proto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var tracer = otel.Tracer("{{ .Proto.Name }}")
 
 // handleError is a helper which response with the error.
 func handleError(req micro.Request, err error) {
@@ -97,6 +102,9 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         micro.ContextHandler(
         	ctx,
         	func(ctx context.Context, req micro.Request){
+         		ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+           		defer span.End()
+
          		r := &{{ .Input.GoIdent.GoName }}{}
 
            		/*
@@ -168,6 +176,9 @@ func NewNATS{{ .GoName }}Client(nc *nats.Conn, queue string) *NATS{{ .GoName }}C
 {{ range .Methods }}
 {{ .Comments.Leading }}func (c *NATS{{ .Parent.GoName }}Client) {{ .GoName }}(ctx context.Context, req *{{ .Input.GoIdent.GoName }}) (*{{ .Output.GoIdent.GoName }}, error) {
 	subject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+
+	ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", subject)))
+	defer span.End()
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
