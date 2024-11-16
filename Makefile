@@ -43,4 +43,4 @@ generate: build
 	--go-nats_opt=paths=source_relative \
 	--go-grpc_out=./example \
 	--go-grpc_opt=paths=source_relative \
-	messages.proto example.proto
+	example.proto
