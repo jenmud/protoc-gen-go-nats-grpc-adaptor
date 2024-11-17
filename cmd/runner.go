@@ -150,6 +150,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
          	},
         ),
         micro.WithEndpointSubject(strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+        micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
     )
 
     if err != nil {

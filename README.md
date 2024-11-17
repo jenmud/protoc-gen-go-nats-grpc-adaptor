@@ -28,3 +28,64 @@ example.proto messages.proto
 ```
 
 The command above will build the example directory, so you will need to alter the command to point to your own protobuf files.
+
+## Using NATS cli client
+
+You can query NATS using the NATS cli client
+
+```bash
+$ ./nats micro list
+# All Micro Services
+
+| Name          | Version | ID                     | Description                                       |
+|---------------|---------|------------------------|---------------------------------------------------|
+| GreeterServer | 0.0.1   | TWaLR1B60j04SCblXqY1xP | NATS micro service adaptor wrapping GreeterServer |
+```
+
+Fetch information about the microservice
+```bash
+$ ./nats micro info GreeterServer
+Service Information
+
+          Service: GreeterServer (TWaLR1B60j04SCblXqY1xP)
+      Description: NATS micro service adaptor wrapping GreeterServer
+          Version: 0.0.1
+
+Endpoints:
+
+               Name: Greeter
+            Subject: svc.greeter.sayhello
+        Queue Group: demo
+
+               Name: Greeter
+            Subject: svc.greeter.sayhelloagain
+        Queue Group: demo
+
+               Name: Greeter
+            Subject: svc.greeter.saygoodbye
+        Queue Group: demo
+
+Statistics for 3 Endpoint(s):
+
+  Greeter Endpoint Statistics:
+
+           Requests: 1 in group "demo"
+    Processing Time: 53µs (average 53µs)
+            Started: 2024-11-17 16:40:49 (1m4s ago)
+             Errors: 0
+
+  Greeter Endpoint Statistics:
+
+           Requests: 1 in group "demo"
+    Processing Time: 25µs (average 25µs)
+            Started: 2024-11-17 16:40:49 (1m4s ago)
+             Errors: 1
+         Last Error: 500:some random example error
+
+  Greeter Endpoint Statistics:
+
+           Requests: 1 in group "demo"
+    Processing Time: 17µs (average 17µs)
+            Started: 2024-11-17 16:40:49 (1m4s ago)
+             Errors: 0
+```

@@ -119,6 +119,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 			},
 		),
 		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHello")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
 	if err != nil {
@@ -200,6 +201,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 			},
 		),
 		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHelloAgain")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
 	if err != nil {
@@ -281,6 +283,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 			},
 		),
 		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayGoodbye")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
 	if err != nil {
