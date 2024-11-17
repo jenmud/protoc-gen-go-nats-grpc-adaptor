@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"time"
 
+	"flag"
+
 	proto "github.com/jenmud/nats-protoc-gen/example"
 	server "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -17,6 +19,9 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	timeout := flag.Duration("timeout", 5*time.Second, "Timeout to auto quit the demo application")
+	flag.Parse()
 
 	opts := server.Options{}
 	ns, err := server.NewServer(&opts)
@@ -89,7 +94,7 @@ func main() {
 
 	logger.Info("bye resp: " + byeResp.GetMessage())
 
-	tctx, tcancel := context.WithTimeout(ctx, 5*time.Second)
+	tctx, tcancel := context.WithTimeout(ctx, *timeout)
 	defer tcancel()
 
 	select {
