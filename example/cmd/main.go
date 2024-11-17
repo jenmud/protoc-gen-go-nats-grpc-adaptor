@@ -89,6 +89,13 @@ func main() {
 
 	logger.Info("bye resp: " + byeResp.GetMessage())
 
-	<-ctx.Done()
-	logger.Info("shutdown", slog.String("reason", ctx.Err().Error()))
+	tctx, tcancel := context.WithTimeout(ctx, 5*time.Second)
+	defer tcancel()
+
+	select {
+	case <-ctx.Done():
+		logger.Info("shutdown", slog.String("reason", ctx.Err().Error()))
+	case <-tctx.Done():
+		logger.Info("shutdown", slog.String("reason", tctx.Err().Error()))
+	}
 }
