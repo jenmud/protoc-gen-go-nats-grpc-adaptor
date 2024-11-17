@@ -49,7 +49,7 @@ func main() {
 		return
 	}
 
-	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, "0.0.1", "demo", "demo")
+	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, "0.0.1", "demo")
 	if err != nil {
 		logger.Error("creating micro service", slog.String("reason", err.Error()))
 		return
@@ -64,7 +64,7 @@ func main() {
 	)
 
 	logger.Info("nats micro service accepting client requests")
-	client := proto.NewNATSGreeterClient(nc, "demo")
+	client := proto.NewNATSGreeterClient(nc)
 
 	resp, err := client.SayHello(ctx, &proto.HelloRequest{Name: "FooBar"})
 	if err != nil {
