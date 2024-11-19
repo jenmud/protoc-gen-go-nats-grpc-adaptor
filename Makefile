@@ -1,6 +1,6 @@
 PROTOC_VERSION=28.3
 PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
-PROTOC_PATH=~/.local/nats-protoc-gen/protoc
+PROTOC_PATH=~/.local/protoc-gen-go-nats-grpc-adaptor/protoc
 GOROOT := $(shell go env GOROOT)
 GOPATH := $(shell go env GOPATH)
 PATH=$(GOROOT)/bin:$(GOPATH)/bin:$(PROTOC_PATH)/bin:/usr/bin:/usr/local/bin:$$PATH
@@ -32,15 +32,15 @@ vendor: update-deps
 	PATH=$(PATH) go mod vendor
 
 build:
-	go build -o builds/protoc-gen-go-nats .
+	go build -o builds/protoc-gen-go-nats-grpc-adaptor .
 
 generate: build
-	PATH=$(PATH):./builds protoc \
+	PATH=./builds:$(PATH) protoc \
 	--proto_path=./example \
 	--go_out=./example \
 	--go_opt=paths=source_relative \
-	--go-nats_out=./example \
-	--go-nats_opt=paths=source_relative \
+	--go-nats-grpc-adaptor_out=./example \
+	--go-nats-grpc-adaptor_opt=paths=source_relative \
 	--go-grpc_out=./example \
 	--go-grpc_opt=paths=source_relative \
 	example.proto messages.proto
