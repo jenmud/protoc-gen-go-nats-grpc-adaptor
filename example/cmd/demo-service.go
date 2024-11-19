@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	proto "github.com/jenmud/nats-protoc-gen/example"
+	proto "github.com/jenmud/protoc-gen-go-nats-grpc-adaptor/example"
 )
 
 type DemoService struct {

@@ -3,7 +3,6 @@ module github.com/jenmud/protoc-gen-go-nats-grpc-adaptor
 go 1.23.2
 
 require (
-	github.com/jenmud/nats-protoc-gen v0.0.0-20241119040652-330757d10d22
 	github.com/nats-io/nats-server/v2 v2.10.22
 	github.com/nats-io/nats.go v1.37.0
 	github.com/spf13/cobra v1.8.1
@@ -40,6 +39,7 @@ require (
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

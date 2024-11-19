@@ -11,7 +11,7 @@ import (
 
 	"flag"
 
-	proto "github.com/jenmud/nats-protoc-gen/example"
+	proto "github.com/jenmud/protoc-gen-go-nats-grpc-adaptor/example"
 	server "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 )
