@@ -36,7 +36,7 @@ import (
     "log/slog"
     "strings"
     "errors"
-    proto "google.golang.org/protobuf/proto"
+    googleProto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
 	"go.opentelemetry.io/otel"
@@ -113,7 +113,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
            		/*
              		Unmarshal the request.
              	*/
-         		if err := proto.Unmarshal(req.Data(), r); err != nil {
+         		if err := googleProto.Unmarshal(req.Data(), r); err != nil {
            			hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
            			handleError(req, err)
                 	return
@@ -132,7 +132,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
                 /*
                 	Take the response from the gRPC service and dump it as a byte array.
                 */
-                respDump, err := proto.Marshal(resp)
+                respDump, err := googleProto.Marshal(resp)
                 if err != nil {
               		hlogger.Error("marshaling response", slog.String("reason", err.Error()))
               		handleError(req, err)
@@ -188,7 +188,7 @@ func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
 	ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", subject)))
 	defer span.End()
 
-	payload, err := proto.Marshal(req)
+	payload, err := googleProto.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
 	}
 
 	resp := &{{ .Output.GoIdent.GoName }}{}
-	if err := proto.Unmarshal(respPayload.Data, resp); err != nil {
+	if err := googleProto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
 	}
 
