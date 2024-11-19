@@ -1,6 +1,6 @@
 module github.com/jenmud/protoc-gen-go-nats-grpc-adaptor
 
-go 1.23.2
+go 1.23.3
 
 require (
 	github.com/nats-io/nats-server/v2 v2.10.22
