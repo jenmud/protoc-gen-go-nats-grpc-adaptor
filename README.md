@@ -1,4 +1,4 @@
-# nats-protoc-gen
+# nats-grpc-adaptor
 NATS protoc gen is a protoc plugin that simplifies generating NATS microservices by wrapping gRPC services.
 
 ## Why
@@ -11,17 +11,24 @@ To build the plugin simply run
 $ make build
 ```
 
+## Installing the plugin
+You can install the latest plugin using the following command
+
+```bash
+$ go install github.com/jenmud/protoc-gen-go-nats-grpc-adaptor@latest
+```
+
 ## Using the plugin
-To use the plugin, run the protoc compiler with the following command. Make sure that `protoc-gen-go-nats` is in your $PATH.
+To use the plugin, run the protoc compiler with the following command. Make sure that `protoc-gen-go-nats-grpc-adaptor` is in your $PATH.
 
 ```bash
 # assuming that the binary is found under ./builds after `make build`
-PATH=$(PATH):./builds protoc \
+PATH=./builds:$PATH protoc \
 --proto_path=./example \
 --go_out=./example \
 --go_opt=paths=source_relative \
---go-nats_out=./example \
---go-nats_opt=paths=source_relative \
+--go-nats-grpc-adaptor_out=./example \
+--go-nats-grpc-adaptor_opt=paths=source_relative \
 --go-grpc_out=./example \
 --go-grpc_opt=paths=source_relative \
 example.proto messages.proto
