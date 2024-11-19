@@ -1,4 +1,4 @@
-module github.com/jenmud/nats-protoc-gen
+module github.com/jenmud/protoc-gen-go-nats-grpc-adaptor
 
 go 1.23.2
 
