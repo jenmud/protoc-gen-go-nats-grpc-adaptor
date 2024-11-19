@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
+	"strings"
 	"text/template"
 
 	"google.golang.org/protobuf/compiler/protogen"
@@ -31,18 +33,7 @@ const templ = `
 
 package {{.GoPackageName}}
 
-import (
-    "context"
-    "log/slog"
-    "strings"
-    "errors"
-    googleProto "google.golang.org/protobuf/proto"
-	nats "github.com/nats-io/nats.go"
-	micro "github.com/nats-io/nats.go/micro"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-)
+{{ formatImports .Imports }}
 
 var tracer = otel.Tracer("{{ .Proto.Name }}")
 
@@ -216,10 +207,123 @@ func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
 
 `
 
+// Import represents a package import
+type Import struct {
+	Path string
+	Name string
+}
+
+// formatImports formats a list of imports properly
+func formatImports(imports []Import) string {
+	if len(imports) == 0 {
+		return ""
+	}
+
+	var result strings.Builder
+	result.WriteString("import (\n")
+	for _, imp := range imports {
+		if imp.Name != "" {
+			result.WriteString(fmt.Sprintf("\t%s %q\n", imp.Name, imp.Path))
+		} else {
+			result.WriteString(fmt.Sprintf("\t%q\n", imp.Path))
+		}
+	}
+	result.WriteString(")")
+	return result.String()
+}
+
+// getRequiredImports returns the list of required imports for the template
+func getRequiredImports() []Import {
+	return []Import{
+		{Path: "context"},
+		{Path: "log/slog"},
+		{Path: "strings"},
+		{Path: "errors"},
+		{Path: "google.golang.org/protobuf/proto", Name: "googleProto"},
+		{Path: "github.com/nats-io/nats.go", Name: "nats"},
+		{Path: "github.com/nats-io/nats.go/micro", Name: "micro"},
+		{Path: "go.opentelemetry.io/otel"},
+		{Path: "go.opentelemetry.io/otel/attribute"},
+		{Path: "go.opentelemetry.io/otel/trace"},
+	}
+}
+
+func collectProtoImports(file *protogen.File) []Import {
+	imports := make(map[string]struct{}) // Use map to deduplicate imports
+
+	// Process each dependency of the file
+	for _, dep := range file.Proto.Dependency {
+		slog.Debug("file dependency", slog.Any("file", dep))
+		if imp := file.GoImportPath; imp != "" {
+			imports[string(imp)] = struct{}{}
+		}
+	}
+
+	var processMessage func(message *protogen.Message)
+	processMessage = func(message *protogen.Message) {
+		for _, field := range message.Fields {
+			// Handle message types
+			if field.Message != nil {
+				if imp := field.Message.GoIdent.GoImportPath; imp != "" && imp != file.GoImportPath {
+					imports[string(imp)] = struct{}{}
+				}
+			}
+
+			// Handle enum types
+			if field.Enum != nil {
+				if imp := field.Enum.GoIdent.GoImportPath; imp != "" && imp != file.GoImportPath {
+					imports[string(imp)] = struct{}{}
+				}
+			}
+		}
+
+		// Process nested messages
+		for _, nested := range message.Messages {
+			processMessage(nested)
+		}
+	}
+
+	// Process all messages
+	for _, message := range file.Messages {
+		processMessage(message)
+	}
+
+	// Process services
+	for _, service := range file.Services {
+		for _, method := range service.Methods {
+			if method.Input != nil {
+				if imp := method.Input.GoIdent.GoImportPath; imp != "" && imp != file.GoImportPath {
+					imports[string(imp)] = struct{}{}
+				}
+			}
+			if method.Output != nil {
+				if imp := method.Output.GoIdent.GoImportPath; imp != "" && imp != file.GoImportPath {
+					imports[string(imp)] = struct{}{}
+				}
+			}
+		}
+	}
+
+	// Convert map to slice of Import
+	var result []Import
+	for importPath := range imports {
+		if importPath == "" || importPath == string(file.GoImportPath) {
+			continue
+		}
+		result = append(result, Import{Path: importPath})
+	}
+
+	return result
+}
+
 // generateFile generates a .pb.go file.
 func generateFile(gen *protogen.Plugin, file *protogen.File) error {
+	// Create template functions map
+	funcMap := template.FuncMap{
+		"formatImports": formatImports,
+	}
 
-	tmpl, err := template.New("nats-micro-service").Parse(templ)
+	tmpl, err := template.New("nats-micro-service").Funcs(funcMap).Parse(templ)
 	if err != nil {
 		return err
 	}
@@ -234,7 +338,24 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 	logger.Info("generating the files")
 
 	g := gen.NewGeneratedFile(filename, file.GoImportPath)
-	if err := tmpl.Execute(g, file); err != nil {
+
+	// Get required imports and proto imports
+	requiredImports := getRequiredImports()
+	protoImports := collectProtoImports(file)
+
+	// Combine all imports
+	allImports := append(requiredImports, protoImports...)
+
+	// Create template data structure
+	data := struct {
+		*protogen.File
+		Imports []Import
+	}{
+		File:    file,
+		Imports: allImports,
+	}
+
+	if err := tmpl.Execute(g, data); err != nil {
 		logger.Error("failed to execute the template", slog.String("reason", err.Error()))
 		return err
 	}

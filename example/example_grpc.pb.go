@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -22,6 +23,7 @@ const (
 	Greeter_SayHello_FullMethodName      = "/example.Greeter/SayHello"
 	Greeter_SayHelloAgain_FullMethodName = "/example.Greeter/SayHelloAgain"
 	Greeter_SayGoodbye_FullMethodName    = "/example.Greeter/SayGoodbye"
+	Greeter_SaveMetadata_FullMethodName  = "/example.Greeter/SaveMetadata"
 )
 
 // GreeterClient is the client API for Greeter service.
@@ -35,6 +37,7 @@ type GreeterClient interface {
 	// Sends another greeting
 	SayHelloAgain(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 	SayGoodbye(ctx context.Context, in *SayGoodbyeRequest, opts ...grpc.CallOption) (*SayGoodbyeReply, error)
+	SaveMetadata(ctx context.Context, in *structpb.Struct, opts ...grpc.CallOption) (*structpb.Struct, error)
 }
 
 type greeterClient struct {
@@ -75,6 +78,16 @@ func (c *greeterClient) SayGoodbye(ctx context.Context, in *SayGoodbyeRequest, o
 	return out, nil
 }
 
+func (c *greeterClient) SaveMetadata(ctx context.Context, in *structpb.Struct, opts ...grpc.CallOption) (*structpb.Struct, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(structpb.Struct)
+	err := c.cc.Invoke(ctx, Greeter_SaveMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility.
@@ -86,6 +99,7 @@ type GreeterServer interface {
 	// Sends another greeting
 	SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error)
 	SayGoodbye(context.Context, *SayGoodbyeRequest) (*SayGoodbyeReply, error)
+	SaveMetadata(context.Context, *structpb.Struct) (*structpb.Struct, error)
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -104,6 +118,9 @@ func (UnimplementedGreeterServer) SayHelloAgain(context.Context, *HelloRequest) 
 }
 func (UnimplementedGreeterServer) SayGoodbye(context.Context, *SayGoodbyeRequest) (*SayGoodbyeReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayGoodbye not implemented")
+}
+func (UnimplementedGreeterServer) SaveMetadata(context.Context, *structpb.Struct) (*structpb.Struct, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveMetadata not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 func (UnimplementedGreeterServer) testEmbeddedByValue()                 {}
@@ -180,6 +197,24 @@ func _Greeter_SayGoodbye_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Greeter_SaveMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(structpb.Struct)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GreeterServer).SaveMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Greeter_SaveMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GreeterServer).SaveMetadata(ctx, req.(*structpb.Struct))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +233,10 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SayGoodbye",
 			Handler:    _Greeter_SayGoodbye_Handler,
+		},
+		{
+			MethodName: "SaveMetadata",
+			Handler:    _Greeter_SaveMetadata_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
