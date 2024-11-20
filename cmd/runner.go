@@ -99,6 +99,14 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
 	               	),
 	             )
 
+				/*
+					Playing around with pulling out information
+
+					{{ .Input.Desc.Parent.Path }}
+					{{ .Input.Desc.Parent.Package }}
+					{{ .Input.GoIdent.GoImportPath }}.{{ .Input.GoIdent.GoName }}{}
+				*/
+
          		r := &{{ .Input.GoIdent.GoName }}{}
 
            		/*

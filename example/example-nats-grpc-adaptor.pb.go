@@ -78,6 +78,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					),
 				)
 
+				/*
+					Playing around with pulling out information
+
+					messages.proto
+
+					"protoc-gen-go-nats-microservice/example".HelloRequest{}
+				*/
+
 				r := &HelloRequest{}
 
 				/*
@@ -159,6 +167,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 						slog.String("subject", endpointSubject),
 					),
 				)
+
+				/*
+					Playing around with pulling out information
+
+					messages.proto
+
+					"protoc-gen-go-nats-microservice/example".HelloRequest{}
+				*/
 
 				r := &HelloRequest{}
 
@@ -242,6 +258,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					),
 				)
 
+				/*
+					Playing around with pulling out information
+
+					messages.proto
+
+					"protoc-gen-go-nats-microservice/example".SayGoodbyeRequest{}
+				*/
+
 				r := &SayGoodbyeRequest{}
 
 				/*
@@ -323,6 +347,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 						slog.String("subject", endpointSubject),
 					),
 				)
+
+				/*
+					Playing around with pulling out information
+
+					google/protobuf/struct.proto
+					google.protobuf
+					"google.golang.org/protobuf/types/known/structpb".Struct{}
+				*/
 
 				r := &Struct{}
 
