@@ -4,6 +4,7 @@ package example;
 
 option go_package = "protoc-gen-go-nats-microservice/example";
 import "messages.proto";
+import "google/protobuf/struct.proto";
 
 // The greeting service definition.
 service Greeter {
@@ -14,4 +15,6 @@ service Greeter {
   rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
 
   rpc SayGoodbye (SayGoodbyeRequest) returns (SayGoodbyeReply) {}
+
+  rpc SaveMetadata(google.protobuf.Struct) returns (google.protobuf.Struct) {}
 }

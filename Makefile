@@ -1,6 +1,6 @@
 PROTOC_VERSION=28.3
 PROTOC_URL=https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
-PROTOC_PATH=~/.local/protoc-gen-go-nats-grpc-adaptor/protoc
+PROTOC_PATH=$(HOME)/.local/protoc-gen-go-nats-grpc-adaptor/protoc
 GOROOT := $(shell go env GOROOT)
 GOPATH := $(shell go env GOPATH)
 PATH=$(GOROOT)/bin:$(GOPATH)/bin:$(PROTOC_PATH)/bin:/usr/bin:/usr/local/bin:$$PATH
@@ -36,6 +36,7 @@ build:
 
 generate: build
 	PATH=./builds:$(PATH) protoc \
+	--proto_path=$(PROTOC_PATH)/include/google/protobuf \
 	--proto_path=./example \
 	--go_out=./example \
 	--go_opt=paths=source_relative \

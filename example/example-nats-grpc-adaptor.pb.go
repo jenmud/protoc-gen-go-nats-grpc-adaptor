@@ -4,16 +4,17 @@
 package example
 
 import (
-	"context"
-	"log/slog"
 	"strings"
-	"errors"
 	googleProto "google.golang.org/protobuf/proto"
-	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
+	"context"
+	"errors"
+	nats "github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/attribute"
+	"log/slog"
+	"go.opentelemetry.io/otel"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -77,20 +78,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					),
 				)
 
-				r := &HelloRequest{}
+				r := new(HelloRequest)
 
-				/*
-					Unmarshal the request.
-				*/
 				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
 					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 
-				/*
-					Forward on the original request to the original gRPC service.
-				*/
 				resp, err := server.SayHello(ctx, r)
 				if err != nil {
 					hlogger.Error("service error", slog.String("reason", err.Error()))
@@ -98,9 +93,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Take the response from the gRPC service and dump it as a byte array.
-				*/
 				respDump, err := googleProto.Marshal(resp)
 				if err != nil {
 					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
@@ -108,9 +100,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Finally response with the original response from the gRPC service.
-				*/
 				if err := req.Respond(respDump); err != nil {
 					hlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
@@ -121,18 +110,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHello")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
-
-	if err != nil {
-		logger.Error(
-			"registering endpoint",
-			slog.Group(
-				"endpoint",
-				slog.String("subject", strings.ToLower("svc.Greeter.SayHello")),
-			),
-			slog.String("reason", err.Error()),
-		)
-		return nil, err
-	}
 
 	logger.Info(
 		"registring endpoint",
@@ -159,20 +136,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					),
 				)
 
-				r := &HelloRequest{}
+				r := new(HelloRequest)
 
-				/*
-					Unmarshal the request.
-				*/
 				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
 					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 
-				/*
-					Forward on the original request to the original gRPC service.
-				*/
 				resp, err := server.SayHelloAgain(ctx, r)
 				if err != nil {
 					hlogger.Error("service error", slog.String("reason", err.Error()))
@@ -180,9 +151,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Take the response from the gRPC service and dump it as a byte array.
-				*/
 				respDump, err := googleProto.Marshal(resp)
 				if err != nil {
 					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
@@ -190,9 +158,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Finally response with the original response from the gRPC service.
-				*/
 				if err := req.Respond(respDump); err != nil {
 					hlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
@@ -203,18 +168,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHelloAgain")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
-
-	if err != nil {
-		logger.Error(
-			"registering endpoint",
-			slog.Group(
-				"endpoint",
-				slog.String("subject", strings.ToLower("svc.Greeter.SayHelloAgain")),
-			),
-			slog.String("reason", err.Error()),
-		)
-		return nil, err
-	}
 
 	logger.Info(
 		"registring endpoint",
@@ -241,20 +194,14 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					),
 				)
 
-				r := &SayGoodbyeRequest{}
+				r := new(SayGoodbyeRequest)
 
-				/*
-					Unmarshal the request.
-				*/
 				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
 					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
 					handleError(req, err)
 					return
 				}
 
-				/*
-					Forward on the original request to the original gRPC service.
-				*/
 				resp, err := server.SayGoodbye(ctx, r)
 				if err != nil {
 					hlogger.Error("service error", slog.String("reason", err.Error()))
@@ -262,9 +209,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Take the response from the gRPC service and dump it as a byte array.
-				*/
 				respDump, err := googleProto.Marshal(resp)
 				if err != nil {
 					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
@@ -272,9 +216,6 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 					return
 				}
 
-				/*
-					Finally response with the original response from the gRPC service.
-				*/
 				if err := req.Respond(respDump); err != nil {
 					hlogger.Error("sending response", slog.String("reason", err.Error()))
 					handleError(req, err)
@@ -286,17 +227,63 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
-	if err != nil {
-		logger.Error(
-			"registering endpoint",
-			slog.Group(
-				"endpoint",
-				slog.String("subject", strings.ToLower("svc.Greeter.SayGoodbye")),
-			),
-			slog.String("reason", err.Error()),
-		)
-		return nil, err
-	}
+	logger.Info(
+		"registring endpoint",
+		slog.Group(
+			"endpoint",
+			slog.String("subject", strings.ToLower("svc.Greeter.SaveMetadata")),
+		),
+	)
+
+	err = srv.AddEndpoint(
+		"Greeter",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				endpointSubject := strings.ToLower("svc.Greeter.SaveMetadata")
+
+				ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
+				hlogger := logger.With(
+					slog.Group(
+						"endpoint",
+						slog.String("subject", endpointSubject),
+					),
+				)
+
+				r := new(structpb.Struct)
+
+				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				resp, err := server.SaveMetadata(ctx, r)
+				if err != nil {
+					hlogger.Error("service error", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				respDump, err := googleProto.Marshal(resp)
+				if err != nil {
+					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				if err := req.Respond(respDump); err != nil {
+					hlogger.Error("sending response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+			},
+		),
+		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SaveMetadata")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+	)
 
 	return srv, nil
 }
@@ -335,7 +322,7 @@ func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*H
 		return nil, errors.New(rpcError)
 	}
 
-	resp := &HelloReply{}
+	resp := new(HelloReply)
 	if err := googleProto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
 	}
@@ -365,7 +352,7 @@ func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest
 		return nil, errors.New(rpcError)
 	}
 
-	resp := &HelloReply{}
+	resp := new(HelloReply)
 	if err := googleProto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
 	}
@@ -394,7 +381,36 @@ func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeReque
 		return nil, errors.New(rpcError)
 	}
 
-	resp := &SayGoodbyeReply{}
+	resp := new(SayGoodbyeReply)
+	if err := googleProto.Unmarshal(respPayload.Data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (c *NATSGreeterClient) SaveMetadata(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
+	subject := strings.ToLower("svc.Greeter.SaveMetadata")
+
+	ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", subject)))
+	defer span.End()
+
+	payload, err := googleProto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload, err := c.nc.RequestWithContext(ctx, subject, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcError := respPayload.Header.Get(micro.ErrorHeader)
+	if rpcError != "" {
+		return nil, errors.New(rpcError)
+	}
+
+	resp := new(structpb.Struct)
 	if err := googleProto.Unmarshal(respPayload.Data, resp); err != nil {
 		return nil, err
 	}
