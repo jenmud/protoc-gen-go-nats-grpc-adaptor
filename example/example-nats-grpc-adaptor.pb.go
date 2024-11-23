@@ -5,16 +5,16 @@ package example
 
 import (
 	"context"
-	"log/slog"
-	nats "github.com/nats-io/nats.go"
 	"strings"
-	"errors"
-	micro "github.com/nats-io/nats.go/micro"
-	"go.opentelemetry.io/otel"
 	googleProto "google.golang.org/protobuf/proto"
+	micro "github.com/nats-io/nats.go/micro"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel"
+	"log/slog"
+	"errors"
 	"google.golang.org/protobuf/types/known/structpb"
+	nats "github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var tracer = otel.Tracer("example.proto")

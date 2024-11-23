@@ -34,6 +34,13 @@ PATH=./builds:$PATH protoc \
 example.proto messages.proto
 ```
 
+### Debugging
+
+To enable debugging logging, set the following environment variable
+```bash
+$ export NATS_GRPC_ADAPTOR_DEBUG=true
+```
+
 The command above will build the example directory, so you will need to alter the command to point to your own protobuf files.
 
 ## Using NATS cli client

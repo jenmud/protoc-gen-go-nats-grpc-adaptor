@@ -37,13 +37,10 @@ var rootCmd = &cobra.Command{
 	Use:   "nats-protoc-gen",
 	Short: "NATS protoc gen is a protobuf compiler plugin for generating NATS microservices.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		debugging, err := cmd.PersistentFlags().GetBool("debug")
-		if err != nil {
-			slog.Error("skipping debugging", slog.String("reason", err.Error()))
-		}
+		viper.BindPFlag("debug", cmd.PersistentFlags().Lookup("debug"))
 
 		level := slog.LevelInfo
-		if debugging {
+		if viper.GetBool("debug") {
 			level = slog.LevelDebug
 		}
 
@@ -86,7 +83,8 @@ func initConfig() {
 		// Search config in home directory with name ".nats-protoc-gen" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".nats-protoc-gen")
+		viper.SetConfigName(".nats-grpc-adaptor")
+		viper.SetEnvPrefix("NATS_GRPC_ADAPTOR")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
