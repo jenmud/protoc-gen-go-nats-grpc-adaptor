@@ -14,6 +14,7 @@ import (
 	proto "github.com/jenmud/protoc-gen-go-nats-grpc-adaptor/example"
 	server "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func main() {
@@ -85,6 +86,26 @@ func main() {
 	}
 
 	logger.Info("again resp: " + againResp.GetMessage())
+
+	meta := map[string]any{
+		"attributes": map[string]any{
+			"name": "foo",
+			"age":  21,
+		},
+	}
+
+	metaStruct, err := structpb.NewStruct(meta)
+	if err != nil {
+		panic(err)
+	}
+
+	metaResp, err := client.SaveMetadata(ctx, metaStruct)
+	if err != nil {
+		logger.Error("error saving meta", slog.String("reason", err.Error()))
+		return
+	}
+
+	logger.Info("save meta resp", slog.Any("meta", metaResp))
 
 	byeResp, err := client.SayGoodbye(ctx, &proto.SayGoodbyeRequest{Name: "FooBar"})
 	if err != nil {
