@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
+// Run is the main entrypoint.
 func Run() error {
 	protogen.Options{}.Run(
 		func(gen *protogen.Plugin) error {
@@ -31,6 +32,7 @@ type Import struct {
 	Name string
 }
 
+// formatImports generates the import statement.
 func formatImports(imports []Import) string {
 	if len(imports) == 0 {
 		return ""
@@ -49,7 +51,7 @@ func formatImports(imports []Import) string {
 	return result.String()
 }
 
-// collectAllImports analyzes the file and collects all required imports
+// collectAllImports analyzes the file and collects all required imports.
 func collectAllImports(file *protogen.File) []Import {
 	imports := make(map[string]Import)
 
@@ -66,6 +68,7 @@ func collectAllImports(file *protogen.File) []Import {
 		"go.opentelemetry.io/otel/attribute": {Path: "go.opentelemetry.io/otel/attribute"},
 		"go.opentelemetry.io/otel/trace":     {Path: "go.opentelemetry.io/otel/trace"},
 	}
+	
 	for k, v := range baseImports {
 		imports[k] = v
 	}
@@ -131,12 +134,13 @@ func collectAllImports(file *protogen.File) []Import {
 	return result
 }
 
-// trimPackagePath gets the last part of the import path to use as package name
+// trimPackagePath gets the last part of the import path to use as package name.
 func trimPackagePath(importPath protogen.GoImportPath) string {
 	parts := strings.Split(string(importPath), "/")
 	return parts[len(parts)-1]
 }
 
+// generateFile is the main entrypoint used for generating the .pb.go file.
 func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 	if len(file.Services) == 0 {
 		return nil
