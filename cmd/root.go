@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -35,6 +36,22 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "nats-protoc-gen",
 	Short: "NATS protoc gen is a protobuf compiler plugin for generating NATS microservices.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		debugging, err := cmd.PersistentFlags().GetBool("debug")
+		if err != nil {
+			slog.Error("skipping debugging", slog.String("reason", err.Error()))
+		}
+
+		level := slog.LevelInfo
+		if debugging {
+			level = slog.LevelDebug
+		}
+
+		options := slog.HandlerOptions{AddSource: true, Level: level}
+		handler := slog.NewTextHandler(os.Stderr, &options)
+		logger := slog.New(handler)
+		slog.SetDefault(logger)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return Run()
 	},
@@ -51,15 +68,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nats-protoc-gen.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
+	rootCmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 

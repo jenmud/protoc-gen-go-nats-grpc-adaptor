@@ -4,16 +4,16 @@
 package example
 
 import (
-	"strings"
-	googleProto "google.golang.org/protobuf/proto"
-	micro "github.com/nats-io/nats.go/micro"
 	"context"
-	"errors"
-	nats "github.com/nats-io/nats.go"
-	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/attribute"
 	"log/slog"
+	nats "github.com/nats-io/nats.go"
+	"strings"
+	"errors"
+	micro "github.com/nats-io/nats.go/micro"
 	"go.opentelemetry.io/otel"
+	googleProto "google.golang.org/protobuf/proto"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 

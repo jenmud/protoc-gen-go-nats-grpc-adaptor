@@ -68,7 +68,7 @@ func collectAllImports(file *protogen.File) []Import {
 		"go.opentelemetry.io/otel/attribute": {Path: "go.opentelemetry.io/otel/attribute"},
 		"go.opentelemetry.io/otel/trace":     {Path: "go.opentelemetry.io/otel/trace"},
 	}
-	
+
 	for k, v := range baseImports {
 		imports[k] = v
 	}
@@ -169,7 +169,7 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 		"trimPackagePath": trimPackagePath,
 		"samePackage": func(msgImportPath protogen.GoImportPath, fileImportPath protogen.GoImportPath) bool {
 			same := msgImportPath == fileImportPath
-			slog.Info("comparing packages",
+			slog.Debug("comparing packages",
 				slog.String("msg_path", string(msgImportPath)),
 				slog.String("file_path", string(fileImportPath)),
 				slog.Bool("same", same))
