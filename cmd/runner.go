@@ -154,7 +154,7 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) error {
 	// Add debug logging for each message
 	for _, service := range file.Services {
 		for _, method := range service.Methods {
-			logger.Info("method type info",
+			logger.Debug("method type info",
 				slog.String("method", method.GoName),
 				slog.String("input_import_path", string(method.Input.GoIdent.GoImportPath)),
 				slog.String("input_go_name", method.Input.GoIdent.GoName),
