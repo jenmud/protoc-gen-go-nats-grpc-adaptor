@@ -18,6 +18,19 @@ You can install the latest plugin using the following command
 $ go install github.com/jenmud/protoc-gen-go-nats-grpc-adaptor@latest
 ```
 
+I recommend installing `goimports` and running the following after generating the plugin files
+
+```bash
+$ go install golang.org/x/tools/cmd/goimports@latest
+```
+
+```bash
+# To fix all files automatically
+$ goimports -w .
+
+# To fix only the proto generated files
+$ goimports -w ./example/example-nats-grpc-adaptor.pb.go
+```
 ## Using the plugin
 To use the plugin, run the protoc compiler with the following command. Make sure that `protoc-gen-go-nats-grpc-adaptor` is in your $PATH.
 
