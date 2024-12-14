@@ -221,6 +221,20 @@ func handleError(req micro.Request, err error) {
 
 {{ range .Services }}
 // NewNATS{{ .GoName }}Server returns the gRPC server as a NATS micro service.
+//
+// Example:
+//   nc, err := nats.Connect(ns.ClientURL())
+//   if err != nil {
+//     panic(err)
+//   }
+//
+//   mc, err := NewNATS{{ .GoName }}Server(context.Background(), nc, {{ .GoName }}Service{}, "1.0.0", "example")
+//   if err != nil {
+//     panic(err)
+//   }
+//
+//   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
+//
 func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, version, queueGroup string) (micro.Service, error) {
     cfg := micro.Config{
         Name: "{{ .GoName }}Server",
@@ -306,12 +320,130 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
     return srv, nil
 }
 
+// NewNATSGRPCClientTo{{ .GoName }}Server returns the gRPC server wrapping a gRPC client as a NATS micro service.
+//
+// Example:
+//   nc, err := nats.Connect(ns.ClientURL())
+//   if err != nil {
+//     panic(err)
+//   }
+//
+//   var opts := []grpc.DailOption
+//
+//   conn, err := grpc.NewClient("localhost:1234", opts...)
+//   if err != nil {
+//       panic(err)
+//   }
+//
+//   defer conn.Close()
+//
+//   client := New{{ .GoName }}Client(conn)
+//   mc, err := NewNATSGRPCClientTo{{ .GoName }}Server(context.Background(), nc, client, "1.0.0", "example")
+//   if err != nil {
+//     panic(err)
+//   }
+//
+//   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
+//
+func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, client {{ .GoName }}Client, version, queueGroup string) (micro.Service, error) {
+    cfg := micro.Config{
+        Name: "{{ .GoName }}Server",
+        Version: version,
+        QueueGroup: queueGroup,
+        Description: "NATS micro service adaptor wrapping {{ .GoName }}Client",
+    }
+
+    srv, err := micro.AddService(nc, cfg)
+    if err != nil {
+        return nil, err
+    }
+
+    logger := slog.With(
+        slog.Group(
+            "service",
+            slog.String("name", cfg.Name),
+            slog.String("version", cfg.Version),
+            slog.String("queue-group", cfg.QueueGroup),
+        ),
+    )
+
+    {{ range .Methods }}
+    logger.Info(
+        "registring endpoint",
+        slog.Group(
+            "endpoint",
+            slog.String("subject", strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+        ),
+    )
+
+    err = srv.AddEndpoint(
+        "{{ .Parent.GoName }}",
+        micro.ContextHandler(
+            ctx,
+            func(ctx context.Context, req micro.Request) {
+                endpointSubject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+
+                ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+                defer span.End()
+
+                hlogger := logger.With(
+                    slog.Group(
+                        "endpoint",
+                        slog.String("subject", endpointSubject),
+                    ),
+                )
+
+                r := new({{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }})
+
+                if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+                    hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+                    handleError(req, err)
+                    return
+                }
+
+                resp, err := client.{{ .GoName }}(ctx, r)
+                if err != nil {
+                    hlogger.Error("service error", slog.String("reason", err.Error()))
+                    handleError(req, err)
+                    return
+                }
+
+                respDump, err := googleProto.Marshal(resp)
+                if err != nil {
+                    hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+                    handleError(req, err)
+                    return
+                }
+
+                if err := req.Respond(respDump); err != nil {
+                    hlogger.Error("sending response", slog.String("reason", err.Error()))
+                    handleError(req, err)
+                    return
+                }
+            },
+        ),
+        micro.WithEndpointSubject(strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+        micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+    )
+    {{ end }}
+
+    return srv, nil
+}
+
 // NATS{{ .GoName }}Client is a client connecting to a NATS {{ .GoName }}Server.
 type NATS{{ .GoName }}Client struct {
     nc *nats.Conn
 }
 
 // NewNATS{{ .GoName }}Client returns a new {{ .GoName }}Server client.
+// Example:
+//   nc, err := nats.Connect(ns.ClientURL())
+//   if err != nil {
+//     panic(err)
+//   }
+//
+//   client := NewNATS{{ .GoName }}Client(nc)
+//
 func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
     return &NATS{{ .GoName }}Client{
         nc: nc,

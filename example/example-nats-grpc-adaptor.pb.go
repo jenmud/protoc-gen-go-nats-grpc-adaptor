@@ -4,17 +4,17 @@
 package example
 
 import (
-	"context"
-	"strings"
-	googleProto "google.golang.org/protobuf/proto"
-	micro "github.com/nats-io/nats.go/micro"
-	"go.opentelemetry.io/otel/attribute"
+	nats "github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel"
 	"log/slog"
-	"errors"
-	"google.golang.org/protobuf/types/known/structpb"
-	nats "github.com/nats-io/nats.go"
+	"strings"
+	googleProto "google.golang.org/protobuf/proto"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/types/known/structpb"
+	"context"
+	"errors"
+	micro "github.com/nats-io/nats.go/micro"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -31,6 +31,20 @@ func handleError(req micro.Request, err error) {
 }
 
 // NewNATSGreeterServer returns the gRPC server as a NATS micro service.
+//
+// Example:
+//
+//	nc, err := nats.Connect(ns.ClientURL())
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	mc, err := NewNATSGreeterServer(context.Background(), nc, GreeterService{}, "1.0.0", "example")
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
 func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, version, queueGroup string) (micro.Service, error) {
 	cfg := micro.Config{
 		Name:        "GreeterServer",
@@ -288,12 +302,302 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 	return srv, nil
 }
 
+// NewNATSGRPCClientToGreeterServer returns the gRPC server wrapping a gRPC client as a NATS micro service.
+//
+// Example:
+//
+//	nc, err := nats.Connect(ns.ClientURL())
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	var opts := []grpc.DailOption
+//
+//	conn, err := grpc.NewClient("localhost:1234", opts...)
+//	if err != nil {
+//	    panic(err)
+//	}
+//
+//	defer conn.Close()
+//
+//	client := NewGreeterClient(conn)
+//	mc, err := NewNATSGRPCClientToGreeterServer(context.Background(), nc, client, "1.0.0", "example")
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
+func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client GreeterClient, version, queueGroup string) (micro.Service, error) {
+	cfg := micro.Config{
+		Name:        "GreeterServer",
+		Version:     version,
+		QueueGroup:  queueGroup,
+		Description: "NATS micro service adaptor wrapping GreeterClient",
+	}
+
+	srv, err := micro.AddService(nc, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := slog.With(
+		slog.Group(
+			"service",
+			slog.String("name", cfg.Name),
+			slog.String("version", cfg.Version),
+			slog.String("queue-group", cfg.QueueGroup),
+		),
+	)
+
+	logger.Info(
+		"registring endpoint",
+		slog.Group(
+			"endpoint",
+			slog.String("subject", strings.ToLower("svc.Greeter.SayHello")),
+		),
+	)
+
+	err = srv.AddEndpoint(
+		"Greeter",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				endpointSubject := strings.ToLower("svc.Greeter.SayHello")
+
+				ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
+				hlogger := logger.With(
+					slog.Group(
+						"endpoint",
+						slog.String("subject", endpointSubject),
+					),
+				)
+
+				r := new(HelloRequest)
+
+				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				resp, err := client.SayHello(ctx, r)
+				if err != nil {
+					hlogger.Error("service error", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				respDump, err := googleProto.Marshal(resp)
+				if err != nil {
+					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				if err := req.Respond(respDump); err != nil {
+					hlogger.Error("sending response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+			},
+		),
+		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHello")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+	)
+
+	logger.Info(
+		"registring endpoint",
+		slog.Group(
+			"endpoint",
+			slog.String("subject", strings.ToLower("svc.Greeter.SayHelloAgain")),
+		),
+	)
+
+	err = srv.AddEndpoint(
+		"Greeter",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				endpointSubject := strings.ToLower("svc.Greeter.SayHelloAgain")
+
+				ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
+				hlogger := logger.With(
+					slog.Group(
+						"endpoint",
+						slog.String("subject", endpointSubject),
+					),
+				)
+
+				r := new(HelloRequest)
+
+				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				resp, err := client.SayHelloAgain(ctx, r)
+				if err != nil {
+					hlogger.Error("service error", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				respDump, err := googleProto.Marshal(resp)
+				if err != nil {
+					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				if err := req.Respond(respDump); err != nil {
+					hlogger.Error("sending response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+			},
+		),
+		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHelloAgain")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+	)
+
+	logger.Info(
+		"registring endpoint",
+		slog.Group(
+			"endpoint",
+			slog.String("subject", strings.ToLower("svc.Greeter.SayGoodbye")),
+		),
+	)
+
+	err = srv.AddEndpoint(
+		"Greeter",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				endpointSubject := strings.ToLower("svc.Greeter.SayGoodbye")
+
+				ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
+				hlogger := logger.With(
+					slog.Group(
+						"endpoint",
+						slog.String("subject", endpointSubject),
+					),
+				)
+
+				r := new(SayGoodbyeRequest)
+
+				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				resp, err := client.SayGoodbye(ctx, r)
+				if err != nil {
+					hlogger.Error("service error", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				respDump, err := googleProto.Marshal(resp)
+				if err != nil {
+					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				if err := req.Respond(respDump); err != nil {
+					hlogger.Error("sending response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+			},
+		),
+		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayGoodbye")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+	)
+
+	logger.Info(
+		"registring endpoint",
+		slog.Group(
+			"endpoint",
+			slog.String("subject", strings.ToLower("svc.Greeter.SaveMetadata")),
+		),
+	)
+
+	err = srv.AddEndpoint(
+		"Greeter",
+		micro.ContextHandler(
+			ctx,
+			func(ctx context.Context, req micro.Request) {
+				endpointSubject := strings.ToLower("svc.Greeter.SaveMetadata")
+
+				ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+				defer span.End()
+
+				hlogger := logger.With(
+					slog.Group(
+						"endpoint",
+						slog.String("subject", endpointSubject),
+					),
+				)
+
+				r := new(structpb.Struct)
+
+				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				resp, err := client.SaveMetadata(ctx, r)
+				if err != nil {
+					hlogger.Error("service error", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				respDump, err := googleProto.Marshal(resp)
+				if err != nil {
+					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+
+				if err := req.Respond(respDump); err != nil {
+					hlogger.Error("sending response", slog.String("reason", err.Error()))
+					handleError(req, err)
+					return
+				}
+			},
+		),
+		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SaveMetadata")),
+		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
+	)
+
+	return srv, nil
+}
+
 // NATSGreeterClient is a client connecting to a NATS GreeterServer.
 type NATSGreeterClient struct {
 	nc *nats.Conn
 }
 
 // NewNATSGreeterClient returns a new GreeterServer client.
+// Example:
+//
+//	nc, err := nats.Connect(ns.ClientURL())
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	client := NewNATSGreeterClient(nc)
 func NewNATSGreeterClient(nc *nats.Conn) *NATSGreeterClient {
 	return &NATSGreeterClient{
 		nc: nc,
