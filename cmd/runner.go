@@ -219,6 +219,73 @@ func handleError(req micro.Request, err error) {
     }
 }
 
+// JobHandler is job handler for the concurrent service.
+type JobHandler struct {
+	ctx context.Context
+	execute func(context.Context, micro.Request)
+	msg micro.Request
+}
+
+// ConcurrentService is a wrapper around the micro.Service interface, extending with additional functionality.
+type ConcurrentService struct {
+	micro micro.Service
+	jobs chan(JobHandler)
+}
+
+// AddEndpoint registers endpoint with given name on a specific subject.
+func (m *ConcurrentService) AddEndpoint(name string, handler micro.Handler, opts ...micro.EndpointOpt) error {
+	return m.micro.AddEndpoint(name, handler, opts...)
+}
+
+// AddGroup returns a Group interface, allowing for more complex endpoint topologies.
+// A group can be used to register endpoints with given prefix.
+ func (m *ConcurrentService) AddGroup(group string, opts ...micro.GroupOpt) micro.Group {
+  return m.micro.AddGroup(group)
+ }
+
+// Info returns the service info.
+ func (m *ConcurrentService) Info() micro.Info {
+  return m.micro.Info()
+ }
+
+// Stats returns statistics for the service endpoint and all monitoring endpoints.
+ func (m *ConcurrentService) Stats() micro.Stats {
+  return m.micro.Stats()
+ }
+
+// Reset resets all statistics (for all endpoints) on a service instance.
+ func (m *ConcurrentService) Reset() {
+  m.micro.Reset()
+ }
+
+// Stop drains the endpoint subscriptions and marks the service as stopped.
+ func (m *ConcurrentService) Stop() error {
+  close(m.jobs)
+  return m.micro.Stop()
+ }
+
+// Stopped informs whether [Stop] was executed on the service.
+ func (m *ConcurrentService) Stopped() bool {
+  return m.micro.Stopped()
+ }
+
+// ConcurrentServiceOption is a function used to configure a ConcurrentService.
+type ConcurrentServiceOption func(*ConcurrentService)
+
+// WithConcurrentJobs sets the number of concurrent jobs to be executed.
+func WithConcurrentJobs(jobs int) ConcurrentServiceOption {
+	return func(s *ConcurrentService) {
+		s.jobs = make(chan JobHandler, jobs)
+		for i := 0; i < jobs; i++ {
+			go func() {
+				for job := range s.jobs {
+					job.execute(job.ctx, job.msg)
+				}
+			}()
+		}
+	}
+}
+
 {{ range .Services }}
 // NewNATS{{ .GoName }}Server returns the gRPC server as a NATS micro service.
 //
@@ -248,12 +315,23 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         return nil, err
     }
 
+    concurrentSrv := &ConcurrentService{
+        jobs: make(chan JobHandler),  // default to a unbuffered channel
+    }
+
+    for _, opt := range opts {
+        opt(concurrentSrv)
+    }
+
+    concurrentSrv.micro = srv
+
     logger := slog.With(
         slog.Group(
             "service",
             slog.String("name", cfg.Name),
             slog.String("version", cfg.Version),
             slog.String("queue-group", cfg.QueueGroup),
+            slog.Int("workers", len(concurrentSrv.jobs)),
         ),
     )
 
