@@ -262,7 +262,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         "registring endpoint",
         slog.Group(
             "endpoint",
-            slog.String("subject", strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+            slog.String("subject", cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
         ),
     )
 
@@ -271,7 +271,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         micro.ContextHandler(
             ctx,
             func(ctx context.Context, req micro.Request) {
-                endpointSubject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
                 ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
                 defer span.End()
@@ -312,7 +312,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
                 }
             },
         ),
-        micro.WithEndpointSubject(strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+        micro.WithEndpointSubject(cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
         micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
     )
     {{ end }}
@@ -373,7 +373,7 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
         "registring endpoint",
         slog.Group(
             "endpoint",
-            slog.String("subject", strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+            slog.String("subject", cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
         ),
     )
 
@@ -382,7 +382,7 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
         micro.ContextHandler(
             ctx,
             func(ctx context.Context, req micro.Request) {
-                endpointSubject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
                 ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
                 defer span.End()
@@ -423,7 +423,7 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
                 }
             },
         ),
-        micro.WithEndpointSubject(strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
+        micro.WithEndpointSubject(cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
         micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
     )
     {{ end }}
@@ -434,6 +434,7 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
 // NATS{{ .GoName }}Client is a client connecting to a NATS {{ .GoName }}Server.
 type NATS{{ .GoName }}Client struct {
     nc *nats.Conn
+    name string
 }
 
 // NewNATS{{ .GoName }}Client returns a new {{ .GoName }}Server client.
@@ -443,17 +444,18 @@ type NATS{{ .GoName }}Client struct {
 //     panic(err)
 //   }
 //
-//   client := NewNATS{{ .GoName }}Client(nc)
+//   client := NewNATS{{ .GoName }}Client(nc, "example-service-name")
 //
-func NewNATS{{ .GoName }}Client(nc *nats.Conn) *NATS{{ .GoName }}Client {
+func NewNATS{{ .GoName }}Client(nc *nats.Conn, name string) *NATS{{ .GoName }}Client {
     return &NATS{{ .GoName }}Client{
         nc: nc,
+        name: name,
     }
 }
 
 {{ range .Methods }}
 {{ .Comments.Leading }}func (c *NATS{{ .Parent.GoName }}Client) {{ .GoName }}(ctx context.Context, req *{{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }}) (*{{ if not (samePackage .Output.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Output.GoIdent.GoImportPath }}.{{ end }}{{ .Output.GoIdent.GoName }}, error) {
-    subject := strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+    subject := c.name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
     ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", subject)))
     defer span.End()

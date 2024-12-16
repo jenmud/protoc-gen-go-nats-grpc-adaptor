@@ -4,17 +4,17 @@
 package example
 
 import (
-	"errors"
-	nats "github.com/nats-io/nats.go"
-	"go.opentelemetry.io/otel/attribute"
-	"log/slog"
-	"google.golang.org/protobuf/types/known/structpb"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	"context"
-	googleProto "google.golang.org/protobuf/proto"
+	"go.opentelemetry.io/otel"
 	micro "github.com/nats-io/nats.go/micro"
+	"go.opentelemetry.io/otel/attribute"
+	googleProto "google.golang.org/protobuf/proto"
+	nats "github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/trace"
+	"log/slog"
 	"strings"
+	"errors"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -71,7 +71,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayHello")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayHello")),
 		),
 	)
 
@@ -80,7 +80,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayHello")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHello")
 
 				ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -121,7 +121,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHello")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHello")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -129,7 +129,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayHelloAgain")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayHelloAgain")),
 		),
 	)
 
@@ -138,7 +138,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayHelloAgain")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHelloAgain")
 
 				ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -179,7 +179,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHelloAgain")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHelloAgain")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -187,7 +187,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayGoodbye")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayGoodbye")),
 		),
 	)
 
@@ -196,7 +196,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayGoodbye")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayGoodbye")
 
 				ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -237,7 +237,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayGoodbye")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayGoodbye")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -245,7 +245,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SaveMetadata")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SaveMetadata")),
 		),
 	)
 
@@ -254,7 +254,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SaveMetadata")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SaveMetadata")
 
 				ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -295,7 +295,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SaveMetadata")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SaveMetadata")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -354,7 +354,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayHello")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayHello")),
 		),
 	)
 
@@ -363,7 +363,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayHello")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHello")
 
 				ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -404,7 +404,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHello")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHello")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -412,7 +412,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayHelloAgain")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayHelloAgain")),
 		),
 	)
 
@@ -421,7 +421,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayHelloAgain")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHelloAgain")
 
 				ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -462,7 +462,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayHelloAgain")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHelloAgain")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -470,7 +470,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SayGoodbye")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SayGoodbye")),
 		),
 	)
 
@@ -479,7 +479,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SayGoodbye")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayGoodbye")
 
 				ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -520,7 +520,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SayGoodbye")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayGoodbye")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -528,7 +528,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		"registring endpoint",
 		slog.Group(
 			"endpoint",
-			slog.String("subject", strings.ToLower("svc.Greeter.SaveMetadata")),
+			slog.String("subject", cfg.Name+"."+strings.ToLower("svc.Greeter.SaveMetadata")),
 		),
 	)
 
@@ -537,7 +537,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := strings.ToLower("svc.Greeter.SaveMetadata")
+				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SaveMetadata")
 
 				ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
 				defer span.End()
@@ -578,7 +578,7 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 				}
 			},
 		),
-		micro.WithEndpointSubject(strings.ToLower("svc.Greeter.SaveMetadata")),
+		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SaveMetadata")),
 		micro.WithEndpointMetadata(map[string]string{"Description": "TODO: still to be implemented - see .proto file for doco"}),
 	)
 
@@ -587,7 +587,8 @@ func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client
 
 // NATSGreeterClient is a client connecting to a NATS GreeterServer.
 type NATSGreeterClient struct {
-	nc *nats.Conn
+	nc   *nats.Conn
+	name string
 }
 
 // NewNATSGreeterClient returns a new GreeterServer client.
@@ -598,16 +599,17 @@ type NATSGreeterClient struct {
 //	  panic(err)
 //	}
 //
-//	client := NewNATSGreeterClient(nc)
-func NewNATSGreeterClient(nc *nats.Conn) *NATSGreeterClient {
+//	client := NewNATSGreeterClient(nc, "example-service-name")
+func NewNATSGreeterClient(nc *nats.Conn, name string) *NATSGreeterClient {
 	return &NATSGreeterClient{
-		nc: nc,
+		nc:   nc,
+		name: name,
 	}
 }
 
 // Sends a greeting
 func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
-	subject := strings.ToLower("svc.Greeter.SayHello")
+	subject := c.name + "." + strings.ToLower("svc.Greeter.SayHello")
 
 	ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", subject)))
 	defer span.End()
@@ -637,7 +639,7 @@ func (c *NATSGreeterClient) SayHello(ctx context.Context, req *HelloRequest) (*H
 
 // Sends another greeting
 func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest) (*HelloReply, error) {
-	subject := strings.ToLower("svc.Greeter.SayHelloAgain")
+	subject := c.name + "." + strings.ToLower("svc.Greeter.SayHelloAgain")
 
 	ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", subject)))
 	defer span.End()
@@ -666,7 +668,7 @@ func (c *NATSGreeterClient) SayHelloAgain(ctx context.Context, req *HelloRequest
 }
 
 func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeRequest) (*SayGoodbyeReply, error) {
-	subject := strings.ToLower("svc.Greeter.SayGoodbye")
+	subject := c.name + "." + strings.ToLower("svc.Greeter.SayGoodbye")
 
 	ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", subject)))
 	defer span.End()
@@ -695,7 +697,7 @@ func (c *NATSGreeterClient) SayGoodbye(ctx context.Context, req *SayGoodbyeReque
 }
 
 func (c *NATSGreeterClient) SaveMetadata(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
-	subject := strings.ToLower("svc.Greeter.SaveMetadata")
+	subject := c.name + "." + strings.ToLower("svc.Greeter.SaveMetadata")
 
 	ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", subject)))
 	defer span.End()

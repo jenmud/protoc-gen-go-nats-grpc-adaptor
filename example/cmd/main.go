@@ -78,7 +78,7 @@ func main() {
 	)
 
 	logger.Info("nats micro service accepting client requests")
-	client := proto.NewNATSGreeterClient(nc)
+	client := proto.NewNATSGreeterClient(nc, cfg.Name)
 
 	resp, err := client.SayHello(ctx, &proto.HelloRequest{Name: "FooBar"})
 	if err != nil {
