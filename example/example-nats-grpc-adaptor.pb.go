@@ -4,17 +4,17 @@
 package example
 
 import (
-	"log/slog"
-	micro "github.com/nats-io/nats.go/micro"
-	"context"
-	nats "github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/trace"
+	googleProto "google.golang.org/protobuf/proto"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/types/known/structpb"
+	"log/slog"
 	"errors"
-	"go.opentelemetry.io/otel/trace"
 	"strings"
-	googleProto "google.golang.org/protobuf/proto"
+	nats "github.com/nats-io/nats.go"
+	micro "github.com/nats-io/nats.go/micro"
 	"go.opentelemetry.io/otel/attribute"
+	"context"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -119,7 +119,7 @@ func WithConcurrentJobs(jobs int) ConcurrentServiceOption {
 //	}
 //
 //	fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
-func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, cfg micro.Config) (micro.Service, error) {
+func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, cfg micro.Config, opts ...ConcurrentServiceOption) (micro.Service, error) {
 	srv, err := micro.AddService(nc, cfg)
 	if err != nil {
 		return nil, err

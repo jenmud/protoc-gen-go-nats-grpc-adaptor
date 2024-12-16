@@ -309,7 +309,7 @@ func WithConcurrentJobs(jobs int) ConcurrentServiceOption {
 //
 //   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
 //
-func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, cfg micro.Config) (micro.Service, error) {
+func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, cfg micro.Config, opts ...ConcurrentServiceOption) (micro.Service, error) {
     srv, err := micro.AddService(nc, cfg)
     if err != nil {
         return nil, err
