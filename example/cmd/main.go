@@ -14,6 +14,7 @@ import (
 	proto "github.com/jenmud/protoc-gen-go-nats-grpc-adaptor/example"
 	server "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/micro"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -56,9 +57,9 @@ func main() {
 	}
 
 	cfg := micro.Config{
-		Name: "GreeterServer-Demo",
-		Version: "1.0.0",
-		QueueGroup: "example",
+		Name:        "GreeterServer-Demo",
+		Version:     "1.0.0",
+		QueueGroup:  "example",
 		Description: "NATS micro service adaptor wrapping GreeterServer",
 	}
 
