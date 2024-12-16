@@ -55,7 +55,14 @@ func main() {
 		return
 	}
 
-	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, "0.0.1", "demo")
+	cfg := micro.Config{
+		Name: "GreeterServer-Demo",
+		Version: "1.0.0",
+		QueueGroup: "example",
+		Description: "NATS micro service adaptor wrapping GreeterServer",
+	}
+
+	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, cfg)
 	if err != nil {
 		logger.Error("creating micro service", slog.String("reason", err.Error()))
 		return
