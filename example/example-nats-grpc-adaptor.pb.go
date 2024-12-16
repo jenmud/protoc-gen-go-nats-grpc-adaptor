@@ -4,17 +4,17 @@
 package example
 
 import (
-	nats "github.com/nats-io/nats.go"
-	"go.opentelemetry.io/otel"
-	"log/slog"
-	"strings"
-	googleProto "google.golang.org/protobuf/proto"
-	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/protobuf/types/known/structpb"
-	"context"
 	"errors"
-	micro "github.com/nats-io/nats.go/micro"
+	nats "github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel/attribute"
+	"log/slog"
+	"google.golang.org/protobuf/types/known/structpb"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"context"
+	googleProto "google.golang.org/protobuf/proto"
+	micro "github.com/nats-io/nats.go/micro"
+	"strings"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -39,20 +39,20 @@ func handleError(req micro.Request, err error) {
 //	  panic(err)
 //	}
 //
-//	mc, err := NewNATSGreeterServer(context.Background(), nc, GreeterService{}, "1.0.0", "example")
+//	cfg := micro.Config{
+//	    Name: "GreeterServer-Demo",
+//	    Version: "1.0.0",
+//	    QueueGroup: "example",
+//	    Description: "NATS micro service adaptor wrapping GreeterServer",
+//	}
+//
+//	mc, err := NewNATSGreeterServer(context.Background(), nc, GreeterService{}, cfg)
 //	if err != nil {
 //	  panic(err)
 //	}
 //
 //	fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
-func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, version, queueGroup string) (micro.Service, error) {
-	cfg := micro.Config{
-		Name:        "GreeterServer",
-		Version:     version,
-		QueueGroup:  queueGroup,
-		Description: "NATS micro service adaptor wrapping GreeterServer",
-	}
-
+func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServer, cfg micro.Config) (micro.Service, error) {
 	srv, err := micro.AddService(nc, cfg)
 	if err != nil {
 		return nil, err
@@ -321,20 +321,21 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 //	defer conn.Close()
 //
 //	client := NewGreeterClient(conn)
-//	mc, err := NewNATSGRPCClientToGreeterServer(context.Background(), nc, client, "1.0.0", "example")
+//
+//	cfg := micro.Config{
+//	    Name: "GreeterWrapper-Demo",
+//	    Version: "1.0.0",
+//	    QueueGroup: "example",
+//	    Description: "NATS micro service adaptor wrapping GreeterClient",
+//	}
+//
+//	mc, err := NewNATSGRPCClientToGreeterServer(context.Background(), nc, client, cfg)
 //	if err != nil {
 //	  panic(err)
 //	}
 //
 //	fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
-func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client GreeterClient, version, queueGroup string) (micro.Service, error) {
-	cfg := micro.Config{
-		Name:        "GreeterServer",
-		Version:     version,
-		QueueGroup:  queueGroup,
-		Description: "NATS micro service adaptor wrapping GreeterClient",
-	}
-
+func NewNATSGRPCClientToGreeterServer(ctx context.Context, nc *nats.Conn, client GreeterClient, cfg micro.Config) (micro.Service, error) {
 	srv, err := micro.AddService(nc, cfg)
 	if err != nil {
 		return nil, err

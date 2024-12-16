@@ -228,21 +228,21 @@ func handleError(req micro.Request, err error) {
 //     panic(err)
 //   }
 //
-//   mc, err := NewNATS{{ .GoName }}Server(context.Background(), nc, {{ .GoName }}Service{}, "1.0.0", "example")
+//   cfg := micro.Config{
+//       Name: "{{ .GoName }}Server-Demo",
+//       Version: "1.0.0",
+//       QueueGroup: "example",
+//       Description: "NATS micro service adaptor wrapping {{ .GoName }}Server",
+//   }
+//
+//   mc, err := NewNATS{{ .GoName }}Server(context.Background(), nc, {{ .GoName }}Service{}, cfg)
 //   if err != nil {
 //     panic(err)
 //   }
 //
 //   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
 //
-func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, version, queueGroup string) (micro.Service, error) {
-    cfg := micro.Config{
-        Name: "{{ .GoName }}Server",
-        Version: version,
-        QueueGroup: queueGroup,
-        Description: "NATS micro service adaptor wrapping {{ .GoName }}Server",
-    }
-
+func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .GoName }}Server, cfg micro.Config) (micro.Service, error) {
     srv, err := micro.AddService(nc, cfg)
     if err != nil {
         return nil, err
@@ -338,21 +338,22 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
 //   defer conn.Close()
 //
 //   client := New{{ .GoName }}Client(conn)
-//   mc, err := NewNATSGRPCClientTo{{ .GoName }}Server(context.Background(), nc, client, "1.0.0", "example")
+//
+//   cfg := micro.Config{
+//       Name: "{{ .GoName }}Wrapper-Demo",
+//       Version: "1.0.0",
+//       QueueGroup: "example",
+//       Description: "NATS micro service adaptor wrapping {{ .GoName }}Client",
+//   }
+//
+//   mc, err := NewNATSGRPCClientTo{{ .GoName }}Server(context.Background(), nc, client, cfg)
 //   if err != nil {
 //     panic(err)
 //   }
 //
 //   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
 //
-func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, client {{ .GoName }}Client, version, queueGroup string) (micro.Service, error) {
-    cfg := micro.Config{
-        Name: "{{ .GoName }}Server",
-        Version: version,
-        QueueGroup: queueGroup,
-        Description: "NATS micro service adaptor wrapping {{ .GoName }}Client",
-    }
-
+func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, client {{ .GoName }}Client, cfg micro.Config) (micro.Service, error) {
     srv, err := micro.AddService(nc, cfg)
     if err != nil {
         return nil, err
