@@ -4,17 +4,17 @@
 package example
 
 import (
-	"go.opentelemetry.io/otel/trace"
-	googleProto "google.golang.org/protobuf/proto"
-	"go.opentelemetry.io/otel"
-	"google.golang.org/protobuf/types/known/structpb"
 	"log/slog"
-	"errors"
-	"strings"
+	googleProto "google.golang.org/protobuf/proto"
 	nats "github.com/nats-io/nats.go"
 	micro "github.com/nats-io/nats.go/micro"
-	"go.opentelemetry.io/otel/attribute"
+	"strings"
+	"errors"
+	"google.golang.org/protobuf/types/known/structpb"
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var tracer = otel.Tracer("example.proto")
@@ -90,6 +90,7 @@ func WithConcurrentJobs(jobs int) ConcurrentServiceOption {
 		for i := 0; i < jobs; i++ {
 			go func() {
 				for job := range s.jobs {
+					slog.Info("executing job", slog.Int("worker", i))
 					job.execute(job.ctx, job.msg)
 				}
 			}()
@@ -126,7 +127,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 	}
 
 	concurrentSrv := &ConcurrentService{
-		jobs: make(chan JobHandler), // default to a unbuffered channel
+		jobs: make(chan JobHandler, 1),
 	}
 
 	for _, opt := range opts {
@@ -141,7 +142,7 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 			slog.String("name", cfg.Name),
 			slog.String("version", cfg.Version),
 			slog.String("queue-group", cfg.QueueGroup),
-			slog.Int("workers", len(concurrentSrv.jobs)),
+			slog.Int("workers", cap(concurrentSrv.jobs)),
 		),
 	)
 
@@ -158,45 +159,49 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHello")
+				handler := func(ctx context.Context, req micro.Request) {
+					endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHello")
 
-				ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-				defer span.End()
+					ctx, span := tracer.Start(ctx, "SayHello", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+					defer span.End()
 
-				hlogger := logger.With(
-					slog.Group(
-						"endpoint",
-						slog.String("subject", endpointSubject),
-					),
-				)
+					hlogger := logger.With(
+						slog.Group(
+							"endpoint",
+							slog.String("subject", endpointSubject),
+						),
+					)
 
-				r := new(HelloRequest)
+					r := new(HelloRequest)
 
-				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
+					if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+						hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					resp, err := server.SayHello(ctx, r)
+					if err != nil {
+						hlogger.Error("service error", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					respDump, err := googleProto.Marshal(resp)
+					if err != nil {
+						hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					if err := req.Respond(respDump); err != nil {
+						hlogger.Error("sending response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
 				}
 
-				resp, err := server.SayHello(ctx, r)
-				if err != nil {
-					hlogger.Error("service error", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				respDump, err := googleProto.Marshal(resp)
-				if err != nil {
-					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				if err := req.Respond(respDump); err != nil {
-					hlogger.Error("sending response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
+				concurrentSrv.jobs <- JobHandler{ctx, handler, req}
 			},
 		),
 		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHello")),
@@ -216,45 +221,49 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHelloAgain")
+				handler := func(ctx context.Context, req micro.Request) {
+					endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayHelloAgain")
 
-				ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-				defer span.End()
+					ctx, span := tracer.Start(ctx, "SayHelloAgain", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+					defer span.End()
 
-				hlogger := logger.With(
-					slog.Group(
-						"endpoint",
-						slog.String("subject", endpointSubject),
-					),
-				)
+					hlogger := logger.With(
+						slog.Group(
+							"endpoint",
+							slog.String("subject", endpointSubject),
+						),
+					)
 
-				r := new(HelloRequest)
+					r := new(HelloRequest)
 
-				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
+					if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+						hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					resp, err := server.SayHelloAgain(ctx, r)
+					if err != nil {
+						hlogger.Error("service error", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					respDump, err := googleProto.Marshal(resp)
+					if err != nil {
+						hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					if err := req.Respond(respDump); err != nil {
+						hlogger.Error("sending response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
 				}
 
-				resp, err := server.SayHelloAgain(ctx, r)
-				if err != nil {
-					hlogger.Error("service error", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				respDump, err := googleProto.Marshal(resp)
-				if err != nil {
-					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				if err := req.Respond(respDump); err != nil {
-					hlogger.Error("sending response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
+				concurrentSrv.jobs <- JobHandler{ctx, handler, req}
 			},
 		),
 		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayHelloAgain")),
@@ -274,45 +283,49 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayGoodbye")
+				handler := func(ctx context.Context, req micro.Request) {
+					endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SayGoodbye")
 
-				ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-				defer span.End()
+					ctx, span := tracer.Start(ctx, "SayGoodbye", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+					defer span.End()
 
-				hlogger := logger.With(
-					slog.Group(
-						"endpoint",
-						slog.String("subject", endpointSubject),
-					),
-				)
+					hlogger := logger.With(
+						slog.Group(
+							"endpoint",
+							slog.String("subject", endpointSubject),
+						),
+					)
 
-				r := new(SayGoodbyeRequest)
+					r := new(SayGoodbyeRequest)
 
-				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
+					if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+						hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					resp, err := server.SayGoodbye(ctx, r)
+					if err != nil {
+						hlogger.Error("service error", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					respDump, err := googleProto.Marshal(resp)
+					if err != nil {
+						hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					if err := req.Respond(respDump); err != nil {
+						hlogger.Error("sending response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
 				}
 
-				resp, err := server.SayGoodbye(ctx, r)
-				if err != nil {
-					hlogger.Error("service error", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				respDump, err := googleProto.Marshal(resp)
-				if err != nil {
-					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				if err := req.Respond(respDump); err != nil {
-					hlogger.Error("sending response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
+				concurrentSrv.jobs <- JobHandler{ctx, handler, req}
 			},
 		),
 		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SayGoodbye")),
@@ -332,45 +345,49 @@ func NewNATSGreeterServer(ctx context.Context, nc *nats.Conn, server GreeterServ
 		micro.ContextHandler(
 			ctx,
 			func(ctx context.Context, req micro.Request) {
-				endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SaveMetadata")
+				handler := func(ctx context.Context, req micro.Request) {
+					endpointSubject := cfg.Name + "." + strings.ToLower("svc.Greeter.SaveMetadata")
 
-				ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-				defer span.End()
+					ctx, span := tracer.Start(ctx, "SaveMetadata", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+					defer span.End()
 
-				hlogger := logger.With(
-					slog.Group(
-						"endpoint",
-						slog.String("subject", endpointSubject),
-					),
-				)
+					hlogger := logger.With(
+						slog.Group(
+							"endpoint",
+							slog.String("subject", endpointSubject),
+						),
+					)
 
-				r := new(structpb.Struct)
+					r := new(structpb.Struct)
 
-				if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-					hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
+					if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+						hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					resp, err := server.SaveMetadata(ctx, r)
+					if err != nil {
+						hlogger.Error("service error", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					respDump, err := googleProto.Marshal(resp)
+					if err != nil {
+						hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
+
+					if err := req.Respond(respDump); err != nil {
+						hlogger.Error("sending response", slog.String("reason", err.Error()))
+						handleError(req, err)
+						return
+					}
 				}
 
-				resp, err := server.SaveMetadata(ctx, r)
-				if err != nil {
-					hlogger.Error("service error", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				respDump, err := googleProto.Marshal(resp)
-				if err != nil {
-					hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
-
-				if err := req.Respond(respDump); err != nil {
-					hlogger.Error("sending response", slog.String("reason", err.Error()))
-					handleError(req, err)
-					return
-				}
+				concurrentSrv.jobs <- JobHandler{ctx, handler, req}
 			},
 		),
 		micro.WithEndpointSubject(cfg.Name+"."+strings.ToLower("svc.Greeter.SaveMetadata")),

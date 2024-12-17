@@ -5,8 +5,11 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
+	"sync"
 	"time"
 
 	"flag"
@@ -22,10 +25,25 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	timeout := flag.Duration("timeout", 5*time.Second, "Timeout to auto quit the demo application")
+	addr := flag.String("address", "localhost:4222", "NATS server address")
+	workers := flag.Int("worker-pool", 1, "Worker pool size")
 	flag.Parse()
 
-	opts := server.Options{}
+	host, portStr, err := net.SplitHostPort(*addr)
+	if err != nil {
+		panic(err)
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		panic(err)
+	}
+
+	opts := server.Options{
+		Host: host,
+		Port: port,
+	}
+
 	ns, err := server.NewServer(&opts)
 	if err != nil {
 		panic(err)
@@ -63,7 +81,7 @@ func main() {
 		Description: "NATS micro service adaptor wrapping GreeterServer",
 	}
 
-	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, cfg)
+	ms, err := proto.NewNATSGreeterServer(ctx, nc, &DemoService{}, cfg, proto.WithConcurrentJobs(*workers))
 	if err != nil {
 		logger.Error("creating micro service", slog.String("reason", err.Error()))
 		return
@@ -80,56 +98,71 @@ func main() {
 	logger.Info("nats micro service accepting client requests")
 	client := proto.NewNATSGreeterClient(nc, cfg.Name)
 
-	resp, err := client.SayHello(ctx, &proto.HelloRequest{Name: "FooBar"})
-	if err != nil {
-		logger.Error("error saying hello", slog.String("reason", err.Error()))
-		return
-	}
+	now := time.Now()
 
-	logger.Info("first resp: " + resp.GetMessage())
+	wg := sync.WaitGroup{}
+	logger.Info(" ---------- start ----------")
 
-	againResp, err := client.SayHelloAgain(ctx, &proto.HelloRequest{Name: "FooBar"})
-	if err != nil {
-		logger.Error("error saying hello AGAIN", slog.String("reason", err.Error()))
-	}
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		logger.Info("sending hello request")
+		resp, err := client.SayHello(ctx, &proto.HelloRequest{Name: "FooBar"})
+		if err != nil {
+			logger.Error("error saying hello", slog.String("reason", err.Error()))
+			return
+		}
+		logger.Info("first resp: " + resp.GetMessage())
+	}(&wg)
 
-	logger.Info("again resp: " + againResp.GetMessage())
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		logger.Info("sending hello request again")
+		againResp, err := client.SayHelloAgain(ctx, &proto.HelloRequest{Name: "FooBar"})
+		if err != nil {
+			logger.Error("error saying hello AGAIN", slog.String("reason", err.Error()))
+		}
+		logger.Info("again resp: " + againResp.GetMessage())
+	}(&wg)
 
-	meta := map[string]any{
-		"attributes": map[string]any{
-			"name": "foo",
-			"age":  21,
-		},
-	}
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		meta := map[string]any{
+			"attributes": map[string]any{
+				"name": "foo",
+				"age":  21,
+			},
+		}
 
-	metaStruct, err := structpb.NewStruct(meta)
-	if err != nil {
-		panic(err)
-	}
+		metaStruct, err := structpb.NewStruct(meta)
+		if err != nil {
+			panic(err)
+		}
 
-	metaResp, err := client.SaveMetadata(ctx, metaStruct)
-	if err != nil {
-		logger.Error("error saving meta", slog.String("reason", err.Error()))
-		return
-	}
+		logger.Info("sending hello save meta request")
+		metaResp, err := client.SaveMetadata(ctx, metaStruct)
+		if err != nil {
+			logger.Error("error saving meta", slog.String("reason", err.Error()))
+			return
+		}
 
-	logger.Info("save meta resp", slog.Any("meta", metaResp))
+		logger.Info("save meta resp", slog.Any("meta", metaResp))
+	}(&wg)
 
-	byeResp, err := client.SayGoodbye(ctx, &proto.SayGoodbyeRequest{Name: "FooBar"})
-	if err != nil {
-		logger.Error("error saying bye", slog.String("reason", err.Error()))
-		return
-	}
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		logger.Info("sending say goodbye request")
+		byeResp, err := client.SayGoodbye(ctx, &proto.SayGoodbyeRequest{Name: "FooBar"})
+		if err != nil {
+			logger.Error("error saying bye", slog.String("reason", err.Error()))
+			return
+		}
+		logger.Info("bye resp: " + byeResp.GetMessage())
+	}(&wg)
 
-	logger.Info("bye resp: " + byeResp.GetMessage())
-
-	tctx, tcancel := context.WithTimeout(ctx, *timeout)
-	defer tcancel()
-
-	select {
-	case <-ctx.Done():
-		logger.Info("shutdown", slog.String("reason", ctx.Err().Error()))
-	case <-tctx.Done():
-		logger.Info("shutdown", slog.String("reason", tctx.Err().Error()))
-	}
+	wg.Wait()
+	logger.Info("------ done ----------", slog.Duration("duration", time.Since(now)))
 }

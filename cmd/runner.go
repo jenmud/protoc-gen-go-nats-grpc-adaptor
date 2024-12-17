@@ -316,7 +316,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
     }
 
     concurrentSrv := &ConcurrentService{
-        jobs: make(chan JobHandler),  // default to a unbuffered channel
+        jobs: make(chan JobHandler, 1),
     }
 
     for _, opt := range opts {
@@ -331,7 +331,7 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
             slog.String("name", cfg.Name),
             slog.String("version", cfg.Version),
             slog.String("queue-group", cfg.QueueGroup),
-            slog.Int("workers", len(concurrentSrv.jobs)),
+            slog.Int("workers", cap(concurrentSrv.jobs)),
         ),
     )
 
@@ -349,45 +349,49 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
         micro.ContextHandler(
             ctx,
             func(ctx context.Context, req micro.Request) {
-                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+            	handler := func(ctx context.Context, req micro.Request) {
+	                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
-                ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-                defer span.End()
+	                ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+	                defer span.End()
 
-                hlogger := logger.With(
-                    slog.Group(
-                        "endpoint",
-                        slog.String("subject", endpointSubject),
-                    ),
-                )
+	                hlogger := logger.With(
+	                    slog.Group(
+	                        "endpoint",
+	                        slog.String("subject", endpointSubject),
+	                    ),
+	                )
 
-                r := new({{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }})
+	                r := new({{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }})
 
-                if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-                    hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
+	                if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+	                    hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
 
-                resp, err := server.{{ .GoName }}(ctx, r)
-                if err != nil {
-                    hlogger.Error("service error", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
+	                resp, err := server.{{ .GoName }}(ctx, r)
+	                if err != nil {
+	                    hlogger.Error("service error", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
 
-                respDump, err := googleProto.Marshal(resp)
-                if err != nil {
-                    hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
+	                respDump, err := googleProto.Marshal(resp)
+	                if err != nil {
+	                    hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
 
-                if err := req.Respond(respDump); err != nil {
-                    hlogger.Error("sending response", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
+	                if err := req.Respond(respDump); err != nil {
+	                    hlogger.Error("sending response", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
+				}
+
+				concurrentSrv.jobs <- JobHandler{ctx, handler, req}
             },
         ),
         micro.WithEndpointSubject(cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
