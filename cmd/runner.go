@@ -435,11 +435,21 @@ func NewNATS{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, server {{ .G
 //
 //   fmt.Printf("%s -> %s\n", mc.Info().Name, mc.Info().ID)
 //
-func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, client {{ .GoName }}Client, cfg micro.Config) (micro.Service, error) {
+func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, client {{ .GoName }}Client, cfg micro.Config, opts ...ConcurrentServiceOption) (micro.Service, error) {
     srv, err := micro.AddService(nc, cfg)
     if err != nil {
         return nil, err
     }
+
+    concurrentSrv := &ConcurrentService{
+        jobs: make(chan JobHandler, 1),
+    }
+
+    for _, opt := range opts {
+        opt(concurrentSrv)
+    }
+
+    concurrentSrv.micro = srv
 
     logger := slog.With(
         slog.Group(
@@ -447,6 +457,7 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
             slog.String("name", cfg.Name),
             slog.String("version", cfg.Version),
             slog.String("queue-group", cfg.QueueGroup),
+            slog.Int("workers", cap(concurrentSrv.jobs)),
         ),
     )
 
@@ -464,45 +475,49 @@ func NewNATSGRPCClientTo{{ .GoName }}Server(ctx context.Context, nc *nats.Conn, 
         micro.ContextHandler(
             ctx,
             func(ctx context.Context, req micro.Request) {
-                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
+            	handler := func(ctx context.Context, req micro.Request) {
+	                endpointSubject := cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")
 
-                ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
-                defer span.End()
+	                ctx, span := tracer.Start(ctx, "{{ .GoName }}", trace.WithAttributes(attribute.String("subject", endpointSubject)))
+	                defer span.End()
 
-                hlogger := logger.With(
-                    slog.Group(
-                        "endpoint",
-                        slog.String("subject", endpointSubject),
-                    ),
-                )
+	                hlogger := logger.With(
+	                    slog.Group(
+	                        "endpoint",
+	                        slog.String("subject", endpointSubject),
+	                    ),
+	                )
 
-                r := new({{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }})
+	                r := new({{ if not (samePackage .Input.GoIdent.GoImportPath $.GoImportPath) }}{{ trimPackagePath .Input.GoIdent.GoImportPath }}.{{ end }}{{ .Input.GoIdent.GoName }})
 
-                if err := googleProto.Unmarshal(req.Data(), r); err != nil {
-                    hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
+	                if err := googleProto.Unmarshal(req.Data(), r); err != nil {
+	                    hlogger.Error("unmarshaling request", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
+
+	                resp, err := client.{{ .GoName }}(ctx, r)
+	                if err != nil {
+	                    hlogger.Error("service error", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
+
+	                respDump, err := googleProto.Marshal(resp)
+	                if err != nil {
+	                    hlogger.Error("marshaling response", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
+
+	                if err := req.Respond(respDump); err != nil {
+	                    hlogger.Error("sending response", slog.String("reason", err.Error()))
+	                    handleError(req, err)
+	                    return
+	                }
                 }
 
-                resp, err := client.{{ .GoName }}(ctx, r)
-                if err != nil {
-                    hlogger.Error("service error", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
-
-                respDump, err := googleProto.Marshal(resp)
-                if err != nil {
-                    hlogger.Error("marshaling response", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
-
-                if err := req.Respond(respDump); err != nil {
-                    hlogger.Error("sending response", slog.String("reason", err.Error()))
-                    handleError(req, err)
-                    return
-                }
+                concurrentSrv.jobs <- JobHandler{ctx, handler, req}
             },
         ),
         micro.WithEndpointSubject(cfg.Name + "." + strings.ToLower("svc.{{ .Parent.GoName }}.{{ .GoName }}")),
