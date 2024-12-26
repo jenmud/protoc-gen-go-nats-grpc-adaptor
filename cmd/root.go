@@ -26,6 +26,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/jenmud/protoc-gen-go-nats-grpc-adaptor/generator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -50,7 +51,7 @@ var rootCmd = &cobra.Command{
 		slog.SetDefault(logger)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return Run()
+		return generator.Run()
 	},
 }
 

@@ -4,17 +4,18 @@
 package example
 
 import (
-	"go.opentelemetry.io/otel/trace"
-	"log/slog"
-	"go.opentelemetry.io/otel/attribute"
-	"google.golang.org/protobuf/types/known/structpb"
-	"errors"
-	micro "github.com/nats-io/nats.go/micro"
 	"context"
-	nats "github.com/nats-io/nats.go"
-	"go.opentelemetry.io/otel"
+	"errors"
+	"log/slog"
 	"strings"
+
+	nats "github.com/nats-io/nats.go"
+	micro "github.com/nats-io/nats.go/micro"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	googleProto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var tracer = otel.Tracer("example.proto")

@@ -24,6 +24,7 @@ install-tools:
 	PATH=$(PATH) go install github.com/air-verse/air@latest
 	PATH=$(PATH) go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	PATH=$(PATH) go install github.com/spf13/cobra-cli@latest
+	PATH=$(PATH) go install golang.org/x/tools/cmd/goimports@latest
 
 update-deps:
 	PATH=$(PATH) go mod tidy
@@ -34,7 +35,7 @@ vendor: update-deps
 build:
 	go build -o builds/protoc-gen-go-nats-grpc-adaptor .
 
-generate: build
+generate-proto:
 	PATH=./builds:$(PATH) protoc \
 	--proto_path=$(PROTOC_PATH)/include/google/protobuf \
 	--proto_path=./example \
@@ -45,3 +46,8 @@ generate: build
 	--go-grpc_out=./example \
 	--go-grpc_opt=paths=source_relative \
 	example.proto messages.proto
+
+fix-imports:
+	goimports -w ./example
+
+generate: generate-proto fix-imports build
