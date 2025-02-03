@@ -123,7 +123,7 @@ func TrimPackagePath(importPath protogen.GoImportPath) string {
 }
 
 // GenerateFile is the main entrypoint used for generating the .pb.go file.
-func GenerateFile(gen *protogen.Plugin, file *protogen.File, tmpl *template.Template) error {
+func GenerateFile(gen *protogen.Plugin, file *protogen.File, tmplStr string) error {
 	if len(file.Services) == 0 {
 		return nil
 	}
@@ -159,7 +159,11 @@ func GenerateFile(gen *protogen.Plugin, file *protogen.File, tmpl *template.Temp
 		},
 	}
 
-	tmpl = template.New("nats-micro-service").Funcs(funcMap)
+	tmpl, err := template.New("nats-micro-service").Funcs(funcMap).Parse(tmplStr)
+	if err != nil {
+		logger.Error("failed to parse the template", slog.String("reason", err.Error()))
+		return err
+	}
 
 	data := struct {
 		*protogen.File
