@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -112,6 +113,11 @@ func CollectAllImports(file *protogen.File) []Import {
 	for _, imp := range imports {
 		result = append(result, imp)
 	}
+
+	// Sort the imports
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Path < result[j].Path
+	})
 
 	return result
 }
