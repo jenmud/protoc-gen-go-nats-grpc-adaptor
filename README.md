@@ -1,5 +1,3 @@
-[![GitLab](https://img.shields.io/badge/Hosted%20on-GitLab-orange?logo=gitlab)](https://gitlab.com/jenmud/protoc-gen-go-nats-grpc-adaptor)
-
 # nats-grpc-adaptor
 
 NATS protoc-gen is a protoc plugin that simplifies the generation of NATS microservices by wrapping gRPC services.
