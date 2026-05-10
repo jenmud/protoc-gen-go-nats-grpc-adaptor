@@ -1,4 +1,4 @@
-[![GitLab](https://img.shields.io/badge/Hosted%20on-GitLab-orange?logo=gitlab)](https://gitlab.com/jenmud/protoc-gen-nats-grpc-adaptor)
+[![GitLab](https://img.shields.io/badge/Hosted%20on-GitLab-orange?logo=gitlab)](https://gitlab.com/jenmud/protoc-gen-go-nats-grpc-adaptor)
 
 # nats-grpc-adaptor
 
